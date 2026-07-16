@@ -276,6 +276,9 @@ input, select, textarea { font-family: inherit; font-size: 15px; color: var(--te
 <body>
 <div id="app">
   <div id="main-content"></div>
+  <div id="sync-bar" style="background:var(--surface);border-top:1px solid var(--border);padding:3px 16px;text-align:right">
+    <span id="sync-indicator" style="font-size:11px;color:var(--text3)">☁ Загрузка...</span>
+  </div>
   <nav id="bottom-nav">
     <button onclick="App.nav('today')" id="nav-today" class="active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -360,27 +363,84 @@ let state = {
   notifTimers: []
 };
 
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbx8xpwXY9ggvHGI4zMczq9oqmUqi1Dv1vm6WR7bormo0Ea69LIh-5gUHbhELjFB5XFE/exec';
+let _saveTimer = null;
+let _syncStatus = 'ok'; // ok | saving | error
+
 function loadState() {
+  // Always load from localStorage first for instant render
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) { state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS)); saveState(); return; }
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object') throw new Error('bad');
-    // migration hook
-    if ((parsed.dataVersion||0) < DATA_VERSION) { parsed.dataVersion = DATA_VERSION; }
-    Object.assign(state, parsed);
-    if (!state.supplements || !state.supplements.length) state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        if ((parsed.dataVersion||0) < DATA_VERSION) parsed.dataVersion = DATA_VERSION;
+        Object.assign(state, parsed);
+      }
+    }
+    if (!state.supplements || !state.supplements.length) {
+      state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
+    }
   } catch(e) {
-    console.warn('localStorage parse error', e);
-    showToast('⚠️ Ошибка чтения данных. Показан исходный список.', 3000);
     state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
   }
-  saveState();
+  // Then sync from Sheets in background
+  syncFromSheets();
+}
+
+function syncFromSheets() {
+  setSyncIndicator('loading');
+  fetch(SHEETS_URL)
+    .then(r => r.text())
+    .then(text => {
+      if (!text || text === '{}') { setSyncIndicator('ok'); return; }
+      const parsed = JSON.parse(text);
+      if (parsed && parsed.supplements && parsed.supplements.length) {
+        Object.assign(state, parsed);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        setSyncIndicator('ok');
+        App.render(App.currentTab);
+      } else { setSyncIndicator('ok'); }
+    })
+    .catch(e => {
+      console.warn('Sheets sync error', e);
+      setSyncIndicator('error');
+    });
 }
 
 function saveState() {
-  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  catch(e) { showToast('⚠️ Ошибка сохранения: ' + e.message, 3000); }
+  // Save to localStorage immediately
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+  // Debounce save to Sheets (wait 1.5s after last change)
+  if (_saveTimer) clearTimeout(_saveTimer);
+  setSyncIndicator('saving');
+  _saveTimer = setTimeout(() => saveToSheets(), 1500);
+}
+
+function saveToSheets() {
+  const body = JSON.stringify(state);
+  fetch(SHEETS_URL, {
+    method: 'POST',
+    body,
+    headers: {'Content-Type': 'text/plain'}
+  })
+  .then(r => r.text())
+  .then(() => setSyncIndicator('ok'))
+  .catch(e => {
+    console.warn('Sheets save error', e);
+    setSyncIndicator('error');
+    showToast('⚠️ Нет связи — данные сохранены локально', 2500);
+  });
+}
+
+function setSyncIndicator(status) {
+  _syncStatus = status;
+  const el = document.getElementById('sync-indicator');
+  if (!el) return;
+  if (status === 'ok') { el.textContent = '☁ Сохранено'; el.style.color = 'var(--green)'; }
+  else if (status === 'saving') { el.textContent = '☁ Сохранение...'; el.style.color = 'var(--text3)'; }
+  else if (status === 'loading') { el.textContent = '☁ Загрузка...'; el.style.color = 'var(--text3)'; }
+  else { el.textContent = '☁ Ошибка связи'; el.style.color = 'var(--red)'; }
 }
 
 // ─── DATE UTILS ──────────────────────────────────────────────────────────────
@@ -1233,6 +1293,7 @@ function renderAdmin() {
       <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
         <div style="font-size:14px;font-weight:600;margin-bottom:10px">Данные и настройки</div>
         <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="syncNow()">🔄 Синхронизировать с облаком</button>
           <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Экспорт в JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Импорт из JSON</button>
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(this)">
@@ -1297,6 +1358,11 @@ function deleteSupp(suppId) {
   }, 'Удалить', true);
 }
 
+function syncNow() {
+  setSyncIndicator('loading');
+  syncFromSheets();
+  showToast('Синхронизация...');
+}
 function exportData() {
   const json = JSON.stringify(state, null, 2);
   const blob = new Blob([json], {type:'application/json'});
