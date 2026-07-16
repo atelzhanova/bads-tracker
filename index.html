@@ -1,0 +1,1637 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>БАДы — Трекер Айнур</title>
+<style>
+:root {
+  --bg: #f7f7f5;
+  --surface: #ffffff;
+  --surface2: #f2f2ef;
+  --border: #e8e8e4;
+  --text: #1a1a1a;
+  --text2: #666;
+  --text3: #999;
+  --accent: #2563eb;
+  --accent-bg: #eff6ff;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --yellow: #d97706;
+  --yellow-bg: #fffbeb;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --purple: #7c3aed;
+  --purple-bg: #f5f3ff;
+  --gray: #6b7280;
+  --gray-bg: #f9fafb;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --nav-h: 64px;
+}
+.dark {
+  --bg: #111;
+  --surface: #1c1c1e;
+  --surface2: #2c2c2e;
+  --border: #3a3a3c;
+  --text: #f2f2f7;
+  --text2: #aeaeb2;
+  --text3: #636366;
+  --accent-bg: #1e2a4a;
+  --green-bg: #0d2818;
+  --yellow-bg: #2a1f00;
+  --red-bg: #2a0f0f;
+  --purple-bg: #1e0f3a;
+  --gray-bg: #1c1c1e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; overflow: hidden; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font-family: inherit; font-size: 15px; color: var(--text); background: var(--surface); }
+
+/* Layout */
+#app { display: flex; flex-direction: column; height: 100dvh; }
+#main-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding-bottom: var(--nav-h); }
+#bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: var(--nav-h); background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 100; }
+#bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 10px; color: var(--text3); padding: 6px 4px; transition: color .15s; }
+#bottom-nav button.active { color: var(--accent); }
+#bottom-nav button svg { width: 22px; height: 22px; }
+
+/* Header */
+.page-header { padding: 16px 16px 0; }
+.page-title { font-size: 22px; font-weight: 600; }
+
+/* Cards */
+.card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; }
+.card-sm { padding: 10px 14px; }
+
+/* Pill items */
+.dose-item { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.dose-item:last-child { border-bottom: none; }
+.dose-check { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .2s; cursor: pointer; margin-top: 1px; }
+.dose-check.done { background: var(--green); border-color: var(--green); }
+.dose-check.done svg { display: block; }
+.dose-check svg { display: none; width: 14px; height: 14px; }
+.dose-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 7px; }
+.dose-body { flex: 1; min-width: 0; }
+.dose-name { font-weight: 500; font-size: 15px; }
+.dose-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.dose-meta { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.dose-item.is-done { opacity: .5; }
+.dose-item.is-rest .dose-name { color: var(--text3); }
+
+/* Progress */
+.progress-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: var(--green); transition: width .3s; }
+.progress-fill.accent { background: var(--accent); }
+
+/* Time group */
+.time-group { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 10px; overflow: hidden; }
+.time-group-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); }
+.time-group-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--text2); }
+.time-group-count { font-size: 11px; color: var(--text3); }
+.time-group-body { padding: 0 16px; }
+
+/* Badge */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-blue { background: var(--accent-bg); color: var(--accent); }
+.badge-purple { background: var(--purple-bg); color: var(--purple); }
+.badge-gray { background: var(--gray-bg); color: var(--gray); }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 16px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 500; transition: all .15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { opacity: .9; }
+.btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: var(--red-bg); color: var(--red); }
+.btn-sm { padding: 6px 12px; font-size: 13px; border-radius: 6px; }
+.btn-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--surface2); }
+.btn-full { width: 100%; }
+
+/* Form */
+.form-group { margin-bottom: 16px; }
+.form-label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 6px; }
+.form-input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 15px; outline: none; }
+.form-input:focus { border-color: var(--accent); }
+.form-select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 15px; appearance: none; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-textarea { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font-size: 14px; min-height: 80px; resize: vertical; outline: none; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--surface); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 90dvh; overflow-y: auto; padding: 20px; transform: translateY(20px); transition: transform .2s; }
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.modal-actions .btn { flex: 1; }
+
+/* Toast */
+.toast-container { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 24px; font-size: 14px; font-weight: 500; opacity: 0; transform: translateY(-8px); transition: all .2s; pointer-events: none; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* Tabs inside page */
+.page-tabs { display: flex; padding: 12px 16px 0; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); margin-bottom: 0; }
+.page-tab { flex: 1; padding: 8px 4px 10px; font-size: 13px; font-weight: 500; color: var(--text3); text-align: center; border-bottom: 2px solid transparent; cursor: pointer; transition: all .15s; }
+.page-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Section pad */
+.section-pad { padding: 14px 16px; }
+
+/* Stat cards */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.stat-n { font-size: 26px; font-weight: 700; color: var(--text); }
+.stat-l { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* Course card */
+.course-card { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; margin-bottom: 10px; }
+.course-card.attention { border-color: var(--yellow); background: var(--yellow-bg); }
+.course-card.rest { border-color: var(--border); opacity: .7; }
+.course-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.course-name { font-size: 15px; font-weight: 600; flex: 1; margin-right: 8px; }
+.course-meta { font-size: 12px; color: var(--text2); margin-bottom: 8px; }
+.course-bar-wrap { margin-bottom: 4px; }
+.course-bar { height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.course-bar-fill { height: 100%; border-radius: 3px; background: var(--accent); }
+.course-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+
+/* Calendar */
+.calendar { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px; margin-bottom: 14px; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-title { font-size: 15px; font-weight: 600; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-dow { font-size: 11px; color: var(--text3); text-align: center; padding: 4px 0; }
+.cal-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 13px; cursor: pointer; position: relative; }
+.cal-day.today { background: var(--accent); color: #fff; font-weight: 600; }
+.cal-day.selected { outline: 2px solid var(--accent); }
+.cal-day::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 4px; height: 4px; border-radius: 50%; }
+.cal-day.green::after { background: var(--green); }
+.cal-day.yellow::after { background: var(--yellow); }
+.cal-day.red::after { background: var(--red); }
+.cal-day.gray::after { background: var(--gray); }
+.cal-day.blue::after { background: var(--accent); }
+
+/* Admin list */
+.admin-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 8px; }
+.admin-item.disabled { opacity: .5; }
+.admin-item-header { display: flex; justify-content: space-between; align-items: center; }
+.admin-item-name { font-weight: 600; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+.admin-item-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.admin-actions { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+
+/* Toggle */
+.toggle { width: 44px; height: 26px; background: var(--border); border-radius: 13px; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+.toggle.on { background: var(--green); }
+.toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.toggle.on::after { left: 21px; }
+
+/* Empty state */
+.empty { text-align: center; padding: 48px 24px; }
+.empty-icon { font-size: 48px; margin-bottom: 12px; }
+.empty-title { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+.empty-sub { font-size: 14px; color: var(--text2); }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 80px; padding-bottom: 2px; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.bar-fill { width: 100%; border-radius: 3px 3px 0 0; background: var(--accent); min-height: 3px; transition: height .3s; }
+.bar-label { font-size: 9px; color: var(--text3); }
+
+/* Divider */
+.divider { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* Settings row */
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 15px; }
+.settings-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+/* Dot colors */
+.cat-brain { background: #8b5cf6; }
+.cat-energy { background: #f59e0b; }
+.cat-body { background: #ef4444; }
+.cat-vitamins { background: #3b82f6; }
+.cat-gut { background: #10b981; }
+.cat-vessels { background: #ec4899; }
+.cat-hormones { background: #f97316; }
+.cat-other { background: #6b7280; }
+
+/* Snackbar confirm */
+.confirm-dialog { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.confirm-box { background: var(--surface); border-radius: var(--radius); padding: 24px; max-width: 320px; width: 100%; }
+.confirm-title { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+.confirm-text { font-size: 14px; color: var(--text2); margin-bottom: 20px; line-height: 1.5; }
+.confirm-actions { display: flex; gap: 10px; }
+.confirm-actions .btn { flex: 1; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Responsive */
+@media (min-width: 600px) {
+  #bottom-nav { max-width: 600px; left: 50%; transform: translateX(-50%); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  #main-content { max-width: 600px; margin: 0 auto; }
+  .modal { border-radius: 16px; margin: auto; align-self: center; }
+  .modal-overlay { align-items: center; }
+}
+
+/* Animations */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.fade-in { animation: fadeIn .2s ease; }
+
+/* Info box */
+.info-box { background: var(--accent-bg); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: var(--accent); line-height: 1.5; }
+.warn-box { background: var(--yellow-bg); border-radius: var(--radius-sm); padding: 10px 14px; margin-bottom: 12px; font-size: 13px; color: var(--yellow); line-height: 1.5; }
+
+/* Chip */
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 20px; font-size: 12px; background: var(--surface2); border: 1px solid var(--border); cursor: pointer; color: var(--text2); }
+.chip.selected { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+
+/* History day detail */
+.history-dose-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+.history-dose-row:last-child { border-bottom: none; }
+
+/* Color swatch */
+.color-swatches { display: flex; gap: 8px; flex-wrap: wrap; }
+.color-swatch { width: 28px; height: 28px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+.color-swatch.selected { border-color: var(--text); }
+
+/* Notification bell */
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); position: absolute; top: 6px; right: 6px; }
+
+/* Course progress bar label */
+.course-bar-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="main-content"></div>
+  <nav id="bottom-nav">
+    <button onclick="App.nav('today')" id="nav-today" class="active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      Сегодня
+    </button>
+    <button onclick="App.nav('courses')" id="nav-courses">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      Курсы
+    </button>
+    <button onclick="App.nav('history')" id="nav-history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
+      История
+    </button>
+    <button onclick="App.nav('stats')" id="nav-stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Статистика
+    </button>
+    <button onclick="App.nav('admin')" id="nav-admin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Админ
+    </button>
+  </nav>
+</div>
+
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+'use strict';
+
+// ─── INITIAL DATA ────────────────────────────────────────────────────────────
+const INITIAL_SUPPLEMENTS = [
+  {id:'s1',name:'Магний Ультра Маг',brand:'',category:'energy',color:'#3b82f6',form:'tablet',doseUnit:'таб',doseQty:2,doseText:'2 таб',food:'any',active:true,archived:false,note:'Чередовать день через день с Магний Треонатом',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s1',time:'08:00',period:'morning',qty:2,food:'any'}]},
+  {id:'s2',name:'Магний Треонат',brand:'Life Extension Neuro Mag',category:'brain',color:'#8b5cf6',form:'powder',doseUnit:'мерная ложка',doseQty:1,doseText:'1 мерная ложка в тёплой воде',food:'any',active:true,archived:false,note:'Чередовать с Ультра Маг. Форма, проникающая в мозг.',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s2',time:'08:00',period:'morning',qty:1,food:'any'}]},
+  {id:'s3',name:'Глутатион липосомальный',brand:'',category:'body',color:'#ec4899',form:'spray',doseUnit:'нажатий',doseQty:6,doseText:'6 нажатий в воду',food:'before',active:true,archived:false,note:'Детокс, красота и молодость',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s3',time:'08:00',period:'morning',qty:6,food:'before'}]},
+  {id:'s4',name:'Trace Minerals',brand:'',category:'vitamins',color:'#6b7280',form:'drops',doseUnit:'капель',doseQty:10,doseText:'10 капель в воду',food:'any',active:true,archived:false,note:'ТОЛЬКО 10 ДНЕЙ курс! Не 3 месяца.',courseType:'days',courseDays:10,restDays:0,intakes:[{id:'d1s4',time:'08:00',period:'morning',qty:10,food:'any'}]},
+  {id:'s5',name:'Витамин А',brand:'Bluebonnet',category:'vitamins',color:'#f59e0b',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс (10 000 МЕ) с едой',food:'with',active:true,archived:false,note:'Ретинол пальмитат. При беременности с 30 нед — 5000–10000 МЕ.',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s5',time:'08:30',period:'morning',qty:1,food:'with'}]},
+  {id:'s6',name:'Витамин Е токотриенолы',brand:'',category:'vitamins',color:'#f97316',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой',food:'with',active:true,archived:false,note:'Антиоксидант, для эластина и сосудов. 2–3 курса в год.',courseType:'days',courseDays:30,restDays:60,intakes:[{id:'d1s6',time:'08:30',period:'morning',qty:1,food:'with'}]},
+  {id:'s7',name:'Витамин Д3 + К2',brand:'',category:'vitamins',color:'#f59e0b',form:'drops',doseUnit:'капли',doseQty:2,doseText:'2 капли (4000 МЕ) с едой',food:'with',active:true,archived:false,note:'Целевой уровень в крови: 60–70. Сдавать анализ раз в месяц.',courseType:'permanent',courseDays:0,restDays:0,intakes:[{id:'d1s7',time:'08:30',period:'morning',qty:2,food:'with'},{id:'d2s7',time:'13:00',period:'day',qty:2,food:'with'}]},
+  {id:'s8',name:'МетилВ9 + МетилВ12',brand:'',category:'brain',color:'#06b6d4',form:'tablet',doseUnit:'таб',doseQty:1,doseText:'1 таб вне еды',food:'empty',active:true,archived:false,note:'При гомоцистеине >6. Через 3 мес пересдать анализ.',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s8',time:'12:00',period:'day',qty:1,food:'empty'}]},
+  {id:'s9',name:'Витамин С + Цинк жидкий',brand:'',category:'vitamins',color:'#22c55e',form:'liquid',doseUnit:'пипетки',doseQty:1.5,doseText:'1,5 пипетки (250 мг С + 25 мг цинка)',food:'any',active:true,archived:false,note:'Добавить лимонный сок от тошноты',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s9',time:'08:30',period:'morning',qty:1.5,food:'any'}]},
+  {id:'s10',name:'Селенметионин',brand:'',category:'vitamins',color:'#10b981',form:'powder',doseUnit:'ч.л.',doseQty:1,doseText:'1 ч.л. без горки вне еды',food:'empty',active:true,archived:false,note:'Антиоксидант, щитовидная железа',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s10',time:'12:30',period:'day',qty:1,food:'empty'}]},
+  {id:'s11',name:'Аденозил В12 / В12 микс',brand:'',category:'brain',color:'#06b6d4',form:'drops',doseUnit:'капля',doseQty:1,doseText:'1 капля через час после еды',food:'after',active:true,archived:false,note:'100% поломка усвоения В12. После нормализации гомоцистеина — В12 микс пожизненно.',courseType:'permanent',courseDays:0,restDays:0,intakes:[{id:'d1s11',time:'09:30',period:'morning',qty:1,food:'after'}]},
+  {id:'s12',name:'Омега-3 масло криля',brand:'Krilom',category:'brain',color:'#3b82f6',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой',food:'with',active:true,archived:false,note:'Нельзя пить без витамина С!',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s12',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s13',name:'Псиллиум',brand:'',category:'gut',color:'#10b981',form:'powder',doseUnit:'ч.л.',doseQty:1,doseText:'1 ч.л. растворить в воде с едой',food:'with',active:true,archived:false,note:'Пищевые волокна, ленивый кишечник',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s13',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s14',name:'Йод органический',brand:'',category:'vitamins',color:'#0ea5e9',form:'drops',doseUnit:'капель',doseQty:15,doseText:'15 капель с водой',food:'any',active:true,archived:false,note:'',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s14',time:'08:30',period:'morning',qty:15,food:'any'}]},
+  {id:'s15',name:'Берберин',brand:'NOW Foods',category:'energy',color:'#f97316',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой',food:'with',active:true,archived:false,note:'Чувствительность к инсулину',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s15',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s16',name:'Витамин В6',brand:'',category:'brain',color:'#8b5cf6',form:'capsule',doseUnit:'мг',doseQty:5,doseText:'5–10 мг (микродозинг утром/днём/вечером)',food:'any',active:true,archived:false,note:'Водорастворимый, быстро истощается на стресс',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s16',time:'08:00',period:'morning',qty:5,food:'any'},{id:'d2s16',time:'13:00',period:'day',qty:5,food:'any'},{id:'d3s16',time:'17:00',period:'evening',qty:5,food:'any'}]},
+  {id:'s17',name:'Смесь антиоксидантов',brand:'NOW Super Antioxidants',category:'body',color:'#ec4899',form:'capsule',doseUnit:'капс',doseQty:2,doseText:'2 капс 2 раза/день',food:'any',active:true,archived:false,note:'Для коллагеназы и защиты сосудов',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s17',time:'08:30',period:'morning',qty:2,food:'any'},{id:'d2s17',time:'13:00',period:'day',qty:2,food:'any'}]},
+  {id:'s18',name:'Сау пальметто',brand:'NOW Foods',category:'hormones',color:'#f97316',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой или без',food:'any',active:true,archived:false,note:'Гормональная сфера. Также в протоколе «Шикарные волосы».',courseType:'days',courseDays:30,restDays:0,intakes:[{id:'d1s18',time:'13:00',period:'day',qty:1,food:'any'}]},
+  {id:'s19',name:'Коэнзим Q10 жидкий',brand:'',category:'energy',color:'#f59e0b',form:'spray',doseUnit:'нажатий',doseQty:8,doseText:'8 нажатий в воду с едой',food:'with',active:true,archived:false,note:'Энергия мозга, ноотроп',courseType:'days',courseDays:30,restDays:0,intakes:[{id:'d1s19',time:'08:30',period:'morning',qty:8,food:'with'}]},
+  {id:'s20',name:'НАК (N-ацетил-цистеин)',brand:'NOW Foods',category:'body',color:'#ec4899',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой',food:'with',active:true,archived:false,note:'Аптечный аналог — Элтацин 1 таб под язык',courseType:'days',courseDays:60,restDays:0,intakes:[{id:'d1s20',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s21',name:'Зостерин Ультра 30',brand:'',category:'gut',color:'#10b981',form:'powder',doseUnit:'саше',doseQty:1,doseText:'1 саше 2 раза/день, заварить в кипятке 90–100°',food:'any',active:true,archived:false,note:'Замена — аминосорб',courseType:'days',courseDays:30,restDays:0,intakes:[{id:'d1s21',time:'14:00',period:'day',qty:1,food:'any'},{id:'d2s21',time:'17:00',period:'evening',qty:1,food:'any'}]},
+  {id:'s22',name:'Кальция Д-глюкорат',brand:'',category:'body',color:'#8b5cf6',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой или без',food:'any',active:true,archived:false,note:'Детокс печени, гормональный баланс',courseType:'custom',courseDays:90,restDays:30,intakes:[{id:'d1s22',time:'13:00',period:'day',qty:1,food:'any'}]},
+  {id:'s23',name:'Калий ионный',brand:'',category:'vessels',color:'#ef4444',form:'drops',doseUnit:'пипетки',doseQty:0.75,doseText:'3/4 пипетки с едой',food:'with',active:true,archived:false,note:'Пожизненно. 100% поломка обмена калия.',courseType:'permanent',courseDays:0,restDays:0,intakes:[{id:'d1s23',time:'08:30',period:'morning',qty:1,food:'with'}]},
+  {id:'s24',name:'Урсактив (ТУДК)',brand:'',category:'gut',color:'#16a34a',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'по инструкции',food:'any',active:true,archived:false,note:'Поддержка желчеоттока, печень',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s24',time:'13:00',period:'day',qty:1,food:'any'}]},
+  {id:'s25',name:'Элеутерококк настойка',brand:'',category:'energy',color:'#16a34a',form:'drops',doseUnit:'капель',doseQty:15,doseText:'15 капель утром + 15 капель в обед',food:'any',active:true,archived:false,note:'Адаптоген, норадреналин. 21-дневный курс.',courseType:'days',courseDays:21,restDays:0,intakes:[{id:'d1s25',time:'08:00',period:'morning',qty:15,food:'any'},{id:'d2s25',time:'13:00',period:'day',qty:15,food:'any'}]},
+  {id:'s26',name:'Диосмин 600',brand:'',category:'vessels',color:'#ef4444',form:'tablet',doseUnit:'таб',doseQty:1,doseText:'1 таб во время еды',food:'with',active:true,archived:false,note:'Эластин, сосуды, вены. До солнечных ванн, массажа, эндосферы.',courseType:'days',courseDays:30,restDays:0,intakes:[{id:'d1s26',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s27',name:'Гинкго билоба настойка',brand:'',category:'brain',color:'#8b5cf6',form:'drops',doseUnit:'капель',doseQty:15,doseText:'15 капель до еды 1 раз/день',food:'before',active:true,archived:false,note:'Эластин, БДНФ, память',courseType:'days',courseDays:30,restDays:0,intakes:[{id:'d1s27',time:'08:00',period:'morning',qty:15,food:'before'}]},
+  {id:'s28',name:'Гландокорт',brand:'',category:'energy',color:'#f59e0b',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс натощак',food:'empty',active:true,archived:false,note:'Надпочечники, энергия',courseType:'days',courseDays:30,restDays:0,intakes:[{id:'d1s28',time:'07:30',period:'morning',qty:1,food:'empty'}]},
+  {id:'s29',name:'Карталакс (пептиды хрящей)',brand:'',category:'body',color:'#6b7280',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс с едой',food:'with',active:true,archived:false,note:'1–2 мес ситуативно при болях в хрящах',courseType:'days',courseDays:60,restDays:0,intakes:[{id:'d1s29',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s30',name:'Альфа-липоевая кислота',brand:'',category:'body',color:'#8b5cf6',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс/сут',food:'any',active:true,archived:false,note:'Тормозит коллагеназу, антиоксидант',courseType:'days',courseDays:60,restDays:0,intakes:[{id:'d1s30',time:'13:00',period:'day',qty:1,food:'any'}]},
+  {id:'s31',name:'В-комплекс жидкий липосомальный',brand:'',category:'brain',color:'#06b6d4',form:'liquid',doseUnit:'пипетка',doseQty:1,doseText:'1 пипетка 1 раз/день во время еды',food:'with',active:true,archived:false,note:'Для холина, нервной системы, кожи',courseType:'3/3',courseDays:90,restDays:90,intakes:[{id:'d1s31',time:'08:30',period:'morning',qty:1,food:'with'}]},
+  {id:'s32',name:'Холин жидкий',brand:'',category:'brain',color:'#7c3aed',form:'liquid',doseUnit:'ст.л.',doseQty:1,doseText:'1 ст.л. 2 раза/день с едой или без',food:'any',active:true,archived:false,note:'Чередовать по дням: пн — холин, вт — таурин, ср — фосфатидилсерин',courseType:'3/3',courseDays:90,restDays:90,schedule:'weekly',scheduleDays:[1],intakes:[{id:'d1s32',time:'08:30',period:'morning',qty:1,food:'any'},{id:'d2s32',time:'13:00',period:'day',qty:1,food:'any'}]},
+  {id:'s33',name:'Таурин порошок',brand:'',category:'gut',color:'#10b981',form:'powder',doseUnit:'мерная ложка',doseQty:1,doseText:'1 мерная ложка за 30 мин до еды',food:'before',active:true,archived:false,note:'Чередовать: пн — холин, вт — таурин, ср — фосфатидилсерин. Инсулинорезистентность, желчеотток.',courseType:'3/3',courseDays:90,restDays:90,schedule:'weekly',scheduleDays:[2],intakes:[{id:'d1s33',time:'12:30',period:'day',qty:1,food:'before'}]},
+  {id:'s34',name:'Фосфатидилсерин',brand:'Jarrow',category:'brain',color:'#7c3aed',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс/день во время еды',food:'with',active:true,archived:false,note:'Чередовать: пн — холин, вт — таурин, ср — фосфатидилсерин. Память, мозг.',courseType:'3/3',courseDays:90,restDays:90,schedule:'weekly',scheduleDays:[3],intakes:[{id:'d1s34',time:'13:00',period:'day',qty:1,food:'with'}]},
+  {id:'s35',name:'Мелатонин 3 мг',brand:'',category:'brain',color:'#7c3aed',form:'tablet',doseUnit:'таб',doseQty:1,doseText:'1 таб перед сном',food:'any',active:false,archived:false,note:'При нарушении сна. 2 мес курс. ПЕРЕД СНОМ (исключение из правила «до 16:00»).',courseType:'days',courseDays:60,restDays:0,intakes:[{id:'d1s35',time:'21:30',period:'sleep',qty:1,food:'any'}]},
+  {id:'s36',name:'Л-теанин 200 мг',brand:'',category:'brain',color:'#7c3aed',form:'capsule',doseUnit:'капс',doseQty:1,doseText:'1 капс перед сном',food:'any',active:false,archived:false,note:'При нарушении сна / депрессии. ПЕРЕД СНОМ.',courseType:'days',courseDays:60,restDays:0,intakes:[{id:'d1s36',time:'21:30',period:'sleep',qty:1,food:'any'}]}
+];
+// ─── DATA LAYER ──────────────────────────────────────────────────────────────
+const DATA_VERSION = 1;
+const STORAGE_KEY = 'ainur_bads_v1';
+
+let state = {
+  dataVersion: DATA_VERSION,
+  supplements: [],
+  courseCycles: {},   // {suppId: {startDate, endDate, phase:'active'|'rest', cycle:0}}
+  intakeLogs: {},     // {'YYYY-MM-DD': [{suppId, doseId, takenAt, status, note}]}
+  dateExceptions: {}, // {'YYYY-MM-DD': [{suppId, doseId, action, newTime, note}]}
+  pauses: {},         // {'YYYY-MM-DD': [{suppId:'all'|id, reason}]}
+  notifSettings: {enabled:false, globalQuiet:{start:'23:00',end:'07:00'}},
+  appSettings: {darkTheme:false, doneBehavior:'dim', showDoneFirst:false},
+  notifTimers: []
+};
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) { state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS)); saveState(); return; }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') throw new Error('bad');
+    // migration hook
+    if ((parsed.dataVersion||0) < DATA_VERSION) { parsed.dataVersion = DATA_VERSION; }
+    Object.assign(state, parsed);
+    if (!state.supplements || !state.supplements.length) state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
+  } catch(e) {
+    console.warn('localStorage parse error', e);
+    showToast('⚠️ Ошибка чтения данных. Показан исходный список.', 3000);
+    state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
+  }
+  saveState();
+}
+
+function saveState() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e) { showToast('⚠️ Ошибка сохранения: ' + e.message, 3000); }
+}
+
+// ─── DATE UTILS ──────────────────────────────────────────────────────────────
+function today() {
+  const d = new Date();
+  return localDateStr(d);
+}
+function localDateStr(d) {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${dd}`;
+}
+function parseLocalDate(str) {
+  if (!str) return null;
+  const [y,m,d] = str.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function addDays(dateStr, n) {
+  const d = parseLocalDate(dateStr);
+  d.setDate(d.getDate() + n);
+  return localDateStr(d);
+}
+function diffDays(a, b) {
+  const da = parseLocalDate(a), db = parseLocalDate(b);
+  return Math.round((db - da) / 86400000);
+}
+function addCalendarMonths(dateStr, months) {
+  const d = parseLocalDate(dateStr);
+  d.setMonth(d.getMonth() + months);
+  return localDateStr(d);
+}
+function formatDate(str) {
+  if (!str) return '—';
+  const d = parseLocalDate(str);
+  const names = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  return `${d.getDate()} ${names[d.getMonth()]} ${d.getFullYear()}`;
+}
+function formatTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleTimeString('ru', {hour:'2-digit',minute:'2-digit'});
+}
+const DOW = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const DOW_FULL = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+const MONTHS_RU = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MONTHS_GEN = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
+// ─── COURSE LOGIC ────────────────────────────────────────────────────────────
+function getCourseForSupp(supp) {
+  return state.courseCycles[supp.id] || null;
+}
+function getCourseStatus(supp) {
+  const c = getCourseForSupp(supp);
+  if (supp.courseType === 'permanent') return {phase:'active', label:'Постоянно', color:'green'};
+  if (!c || !c.startDate) return {phase:'nodate', label:'Нет даты начала', color:'gray'};
+  const t = today();
+  if (c.phase === 'rest') {
+    if (!c.restEndDate || t >= c.restEndDate) return {phase:'need_start', label:'Указать дату следующего курса', color:'yellow'};
+    const dLeft = diffDays(t, c.restEndDate);
+    return {phase:'rest', label:`Отдых · осталось ${dLeft} дн.`, color:'gray'};
+  }
+  if (c.phase === 'active') {
+    if (!c.endDate) return {phase:'active', label:'Активен', color:'green'};
+    if (t > c.endDate) return {phase:'rest_auto', label:'Курс завершён — перейти в отдых', color:'yellow'};
+    const dLeft = diffDays(t, c.endDate);
+    const total = c.courseDays || 90;
+    const passed = diffDays(c.startDate, t);
+    return {phase:'active', label:`Приём · день ${Math.max(0,passed)+1} из ${total}`, color:'green', passed, total, dLeft};
+  }
+  return {phase:'unknown', label:'Неизвестно', color:'gray'};
+}
+function isSuppActiveToday(supp, dateStr) {
+  if (!supp.active || supp.archived) return false;
+  const c = state.courseCycles[supp.id];
+  if (supp.courseType === 'permanent') return true;
+  if (!c || !c.startDate) return false;
+  if (dateStr < c.startDate) return false;
+  if (c.phase === 'rest') return false;
+  if (c.phase === 'need_start') return false;
+  if (c.endDate && dateStr > c.endDate) return false;
+  return true;
+}
+function isScheduledOnDate(supp, dateStr) {
+  if (!supp.schedule) return true; // daily
+  if (supp.schedule === 'weekly') {
+    const dow = parseLocalDate(dateStr).getDay();
+    return (supp.scheduleDays||[]).includes(dow);
+  }
+  if (supp.schedule === 'altday') {
+    const ref = supp.altdayRef || supp.courseStartDate || dateStr;
+    return diffDays(ref, dateStr) % 2 === 0;
+  }
+  return true;
+}
+
+// ─── DOSE PLAN ───────────────────────────────────────────────────────────────
+function getDosesForDate(dateStr) {
+  const doses = [];
+  for (const supp of state.supplements) {
+    if (!isSuppActiveToday(supp, dateStr)) continue;
+    if (!isScheduledOnDate(supp, dateStr)) continue;
+    // check pause
+    const dayPauses = state.pauses[dateStr] || [];
+    const paused = dayPauses.some(p => p.suppId === 'all' || p.suppId === supp.id);
+    for (const intake of (supp.intakes || [])) {
+      const exc = getException(dateStr, supp.id, intake.id);
+      if (exc && exc.action === 'skip') continue;
+      doses.push({
+        supp, intake,
+        paused,
+        excTime: exc && exc.newTime,
+        doseId: intake.id,
+        suppId: supp.id
+      });
+    }
+  }
+  doses.sort((a,b) => {
+    const ta = (a.excTime || a.intake.time || '23:59');
+    const tb = (b.excTime || b.intake.time || '23:59');
+    return ta.localeCompare(tb);
+  });
+  return doses;
+}
+function getException(dateStr, suppId, doseId) {
+  const excs = state.dateExceptions[dateStr] || [];
+  return excs.find(e => e.suppId === suppId && e.doseId === doseId) || null;
+}
+function getLog(dateStr, suppId, doseId) {
+  const logs = state.intakeLogs[dateStr] || [];
+  return logs.find(l => l.suppId === suppId && l.doseId === doseId) || null;
+}
+function setLog(dateStr, suppId, doseId, takenAt, status, note) {
+  if (!state.intakeLogs[dateStr]) state.intakeLogs[dateStr] = [];
+  const idx = state.intakeLogs[dateStr].findIndex(l => l.suppId === suppId && l.doseId === doseId);
+  if (takenAt === null) {
+    if (idx > -1) state.intakeLogs[dateStr].splice(idx, 1);
+  } else {
+    const entry = {suppId, doseId, takenAt, status: status||'taken', note: note||''};
+    if (idx > -1) state.intakeLogs[dateStr][idx] = entry; else state.intakeLogs[dateStr].push(entry);
+  }
+  saveState();
+}
+
+// ─── STATS ───────────────────────────────────────────────────────────────────
+function getDayStats(dateStr) {
+  const doses = getDosesForDate(dateStr);
+  const total = doses.filter(d => !d.paused).length;
+  const taken = doses.filter(d => { const l = getLog(dateStr,d.suppId,d.doseId); return l && l.status==='taken'; }).length;
+  return {total, taken, pct: total ? Math.round(taken/total*100) : 0};
+}
+function getDayColor(dateStr) {
+  const d = getDosesForDate(dateStr);
+  if (!d.length) return 'gray';
+  const s = getDayStats(dateStr);
+  if (s.pct === 100) return 'green';
+  if (s.pct > 0) return 'yellow';
+  return 'red';
+}
+function getStreak(suppId, upToDate) {
+  let streak = 0, d = upToDate;
+  for (let i=0;i<365;i++) {
+    const supp = state.supplements.find(s=>s.id===suppId);
+    if (!supp) break;
+    if (!isSuppActiveToday(supp, d)) { d = addDays(d,-1); continue; }
+    if (!isScheduledOnDate(supp, d)) { d = addDays(d,-1); continue; }
+    const logs = state.intakeLogs[d] || [];
+    const intakes = supp.intakes || [];
+    const taken = intakes.every(int => logs.some(l=>l.suppId===suppId&&l.doseId===int.id&&l.status==='taken'));
+    if (taken) { streak++; d = addDays(d,-1); } else break;
+  }
+  return streak;
+}
+function getAdherencePct(suppId, days) {
+  let planned=0, taken=0;
+  const supp = state.supplements.find(s=>s.id===suppId);
+  if (!supp) return 0;
+  const end = today();
+  for (let i=0;i<days;i++) {
+    const d = addDays(end, -i);
+    if (!isSuppActiveToday(supp,d) || !isScheduledOnDate(supp,d)) continue;
+    const intakes = supp.intakes || [];
+    planned += intakes.length;
+    const logs = state.intakeLogs[d] || [];
+    taken += intakes.filter(int => logs.some(l=>l.suppId===suppId&&l.doseId===int.id&&l.status==='taken')).length;
+  }
+  return planned ? Math.round(taken/planned*100) : 0;
+}
+
+// ─── UI HELPERS ──────────────────────────────────────────────────────────────
+function showToast(msg, duration=2000) {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  c.appendChild(t);
+  requestAnimationFrame(() => { t.classList.add('show'); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(()=>t.remove(), 300); }, duration);
+}
+function confirm(title, text, onOk, okLabel='Подтвердить', danger=false) {
+  const d = document.createElement('div');
+  d.className = 'confirm-dialog';
+  d.innerHTML = `<div class="confirm-box">
+    <div class="confirm-title">${title}</div>
+    <div class="confirm-text">${text}</div>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary btn-sm" id="cf-cancel">Отмена</button>
+      <button class="btn ${danger?'btn-danger':'btn-primary'} btn-sm" id="cf-ok">${okLabel}</button>
+    </div>
+  </div>`;
+  document.body.appendChild(d);
+  d.querySelector('#cf-cancel').onclick = () => d.remove();
+  d.querySelector('#cf-ok').onclick = () => { d.remove(); onOk(); };
+}
+function openModal(html, onOpen) {
+  const ov = document.createElement('div');
+  ov.className = 'modal-overlay';
+  ov.innerHTML = `<div class="modal"><div class="modal-handle"></div>${html}</div>`;
+  document.body.appendChild(ov);
+  requestAnimationFrame(() => ov.classList.add('open'));
+  ov.addEventListener('click', e => { if(e.target===ov) closeModal(ov); });
+  if(onOpen) onOpen(ov);
+  return ov;
+}
+function closeModal(ov) {
+  ov.classList.remove('open');
+  setTimeout(()=>ov.remove(), 300);
+}
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+
+const PERIOD_LABELS = {morning:'Утро',day:'День',evening:'Вечер',sleep:'Перед сном',any:'Без времени'};
+const FOOD_LABELS = {with:'С едой',before:'До еды',after:'После еды',empty:'Натощак',any:'Независимо от еды'};
+const CATEGORY_COLORS = {brain:'#8b5cf6',energy:'#f59e0b',body:'#ec4899',vitamins:'#3b82f6',gut:'#10b981',vessels:'#ef4444',hormones:'#f97316',other:'#6b7280'};
+const CATEGORY_LABELS = {brain:'Мозг',energy:'Энергия',body:'Тело/Кожа',vitamins:'Витамины',gut:'ЖКТ',vessels:'Сосуды',hormones:'Гормоны',other:'Другое'};
+const COLOR_PRESETS = ['#8b5cf6','#3b82f6','#10b981','#f59e0b','#ef4444','#f97316','#ec4899','#06b6d4','#16a34a','#6b7280','#7c3aed','#0ea5e9'];
+
+function getCatColor(supp) { return supp.color || CATEGORY_COLORS[supp.category] || '#6b7280'; }
+function periodOrder(p) { return {morning:0,day:1,evening:2,sleep:3,any:4}[p]||5; }
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────────────────────
+function requestNotifPerm(cb) {
+  if (!('Notification' in window)) { showToast('Браузер не поддерживает уведомления'); return; }
+  Notification.requestPermission().then(p => { if(cb)cb(p); });
+}
+function scheduleNotifs() {
+  (state.notifTimers||[]).forEach(id => clearTimeout(id));
+  state.notifTimers = [];
+  if (!state.notifSettings.enabled) return;
+  if (Notification.permission !== 'granted') return;
+  const doses = getDosesForDate(today());
+  doses.forEach(d => {
+    const t = d.intake.time;
+    if (!t) return;
+    const [h,m] = t.split(':').map(Number);
+    const now = new Date(), target = new Date();
+    target.setHours(h,m,0,0);
+    const ms = target - now;
+    if (ms < 0 || ms > 86400000) return;
+    const tid = setTimeout(() => {
+      const log = getLog(today(), d.suppId, d.doseId);
+      if (!log) new Notification(`💊 ${d.supp.name}`, {body: d.intake.doseText || d.supp.doseText || '', icon: ''});
+    }, ms);
+    state.notifTimers.push(tid);
+  });
+}
+// ─── TODAY TAB ───────────────────────────────────────────────────────────────
+let viewDate = today();
+
+function renderToday() {
+  const dateStr = viewDate;
+  const d = parseLocalDate(dateStr);
+  const isToday = dateStr === today();
+  const stats = getDayStats(dateStr);
+  const doses = getDosesForDate(dateStr);
+
+  const groups = {morning:[], day:[], evening:[], sleep:[], any:[]};
+  for (const dose of doses) {
+    const period = dose.intake.period || 'any';
+    (groups[period]||groups.any).push(dose);
+  }
+
+  const doneBehavior = state.appSettings.doneBehavior || 'dim';
+
+  let groupsHtml = '';
+  for (const [period, items] of Object.entries(groups)) {
+    if (!items.length) continue;
+    const takenCount = items.filter(it => { const l=getLog(dateStr,it.suppId,it.doseId); return l&&l.status==='taken'; }).length;
+    const sortedItems = doneBehavior === 'bottom'
+      ? [...items].sort((a,b) => { const la=getLog(dateStr,a.suppId,a.doseId),lb=getLog(dateStr,b.suppId,b.doseId); return (la?1:0)-(lb?1:0); })
+      : items;
+    const visItems = doneBehavior === 'hide'
+      ? sortedItems.filter(it => !getLog(dateStr,it.suppId,it.doseId))
+      : sortedItems;
+    if (!visItems.length && doneBehavior === 'hide') continue;
+
+    groupsHtml += `<div class="time-group">
+      <div class="time-group-header">
+        <span class="time-group-title">${PERIOD_LABELS[period]||period}</span>
+        <span class="time-group-count">${takenCount}/${items.length}</span>
+      </div>
+      <div class="time-group-body">
+        ${visItems.map(dose => renderDoseItem(dose, dateStr)).join('')}
+      </div>
+    </div>`;
+  }
+
+  const content = document.getElementById('main-content');
+  content.innerHTML = `
+    <div class="page-header" style="background:var(--surface);padding:14px 16px 12px;border-bottom:1px solid var(--border);margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <button class="btn-icon" onclick="changeViewDate(-1)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div style="text-align:center">
+          <div style="font-size:17px;font-weight:600">${isToday?'Сегодня':DOW_FULL[d.getDay()]}</div>
+          <div style="font-size:13px;color:var(--text2)">${d.getDate()} ${MONTHS_GEN[d.getMonth()]} ${d.getFullYear()}</div>
+        </div>
+        <div style="display:flex;gap:6px">
+          ${!isToday?`<button class="btn-icon btn-sm" onclick="viewDate=today();renderToday()" title="Сегодня" style="font-size:11px;width:auto;padding:4px 8px">Сегодня</button>`:''}
+          <button class="btn-icon" onclick="changeViewDate(1)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div class="progress-bar"><div class="progress-fill" style="width:${stats.pct}%"></div></div>
+        </div>
+        <div style="font-size:13px;color:var(--text2);white-space:nowrap">${stats.taken}/${stats.total} · ${stats.pct}%</div>
+      </div>
+    </div>
+    <div style="padding:0 12px 16px">
+      ${doses.length === 0 ? `<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">Нет запланированных приёмов</div><div class="empty-sub">Настройте БАДы и даты курсов в разделе «Курсы»</div></div>` : groupsHtml}
+      ${isToday && doses.filter(d=>!getLog(dateStr,d.suppId,d.doseId)&&!d.paused).length > 1 ? `
+      <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="markAllDue()">
+        ✓ Отметить все запланированные до сейчас
+      </button>` : ''}
+      <button class="btn btn-secondary btn-full" style="margin-top:8px;font-size:13px;color:var(--text2)" onclick="openDayNote('${dateStr}')">
+        📝 ${state.dayNotes && state.dayNotes[dateStr] ? 'Заметка дня: '+state.dayNotes[dateStr].slice(0,30) : 'Добавить заметку дня'}
+      </button>
+    </div>`;
+  content.classList.add('fade-in');
+}
+
+function renderDoseItem(dose, dateStr) {
+  const log = getLog(dateStr, dose.suppId, dose.doseId);
+  const isDone = log && log.status === 'taken';
+  const isPaused = dose.paused;
+  const color = getCatColor(dose.supp);
+  const time = dose.excTime || dose.intake.time || '';
+  const timeStr = time ? `${time}` : '';
+  const foodStr = FOOD_LABELS[dose.intake.food||dose.supp.food||'any'] || '';
+  const doseText = dose.intake.doseText || dose.supp.doseText || `${dose.intake.qty||dose.supp.doseQty} ${dose.intake.unit||dose.supp.doseUnit}`;
+  const takenAtStr = isDone ? ` · принято в ${formatTime(log.takenAt)}` : '';
+  const courseSt = getCourseStatus(dose.supp);
+  let streakStr = '';
+  if (isDone || getStreak(dose.suppId, dateStr) > 0) {
+    const s = getStreak(dose.suppId, dateStr);
+    if (s > 1) streakStr = ` · серия: ${s} дн.`;
+  }
+
+  return `<div class="dose-item${isDone?' is-done':''}${isPaused?' is-rest':''}" data-sid="${dose.suppId}" data-did="${dose.doseId}" data-date="${dateStr}">
+    <div class="dose-check${isDone?' done':''}" onclick="toggleDose('${dose.suppId}','${dose.doseId}','${dateStr}')">
+      <svg viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <div class="dose-dot" style="background:${color}"></div>
+    <div class="dose-body">
+      <div class="dose-name">${dose.supp.name}${dose.supp.brand?` <span style="font-weight:400;color:var(--text2);font-size:13px">${dose.supp.brand}</span>`:''}</div>
+      <div class="dose-sub">${doseText}${timeStr?' · '+timeStr:''}${takenAtStr}</div>
+      <div class="dose-meta">${foodStr}${dose.supp.note ? ' · ' + dose.supp.note.slice(0,60) : ''}${streakStr}</div>
+      ${isPaused?'<div class="dose-meta" style="color:var(--yellow)">⏸ Пауза сегодня</div>':''}
+    </div>
+    <button style="background:none;border:none;padding:6px;color:var(--text3);font-size:18px;cursor:pointer;line-height:1" onclick="openDoseMenu(event,'${dose.suppId}','${dose.doseId}','${dateStr}')">⋯</button>
+  </div>`;
+}
+
+function toggleDose(suppId, doseId, dateStr) {
+  const log = getLog(dateStr, suppId, doseId);
+  if (log && log.status === 'taken') {
+    confirm('Отменить отметку?', 'Запись о приёме будет удалена.', () => {
+      setLog(dateStr, suppId, doseId, null);
+      renderToday();
+      showToast('Отметка отменена');
+    }, 'Отменить приём', true);
+    return;
+  }
+  setLog(dateStr, suppId, doseId, new Date().toISOString(), 'taken');
+  renderToday();
+}
+
+function changeViewDate(delta) {
+  viewDate = addDays(viewDate, delta);
+  renderToday();
+}
+
+function markAllDue() {
+  const dateStr = viewDate;
+  const now = new Date();
+  const doses = getDosesForDate(dateStr).filter(d => {
+    if (getLog(dateStr,d.suppId,d.doseId)) return false;
+    if (d.paused) return false;
+    const t = d.intake.time;
+    if (!t) return true;
+    const [h,m] = t.split(':').map(Number);
+    return h*60+m <= now.getHours()*60+now.getMinutes();
+  });
+  if (!doses.length) { showToast('Нет неотмеченных приёмов'); return; }
+  const names = doses.map(d=>d.supp.name).join(', ');
+  confirm('Отметить приёмы', `Будет отмечено: ${names}`, () => {
+    const iso = new Date().toISOString();
+    doses.forEach(d => setLog(dateStr, d.suppId, d.doseId, iso, 'taken'));
+    renderToday();
+    showToast(`Отмечено ${doses.length} приёмов`);
+  });
+}
+
+function openDayNote(dateStr) {
+  if (!state.dayNotes) state.dayNotes = {};
+  const cur = state.dayNotes[dateStr] || '';
+  const ov = openModal(`
+    <div class="modal-title">Заметка дня</div>
+    <div class="form-group"><textarea class="form-textarea" id="daynote-ta" placeholder="Самочувствие, режим, анализы...">${cur}</textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="saveDayNote('${dateStr}',this)">Сохранить</button>
+    </div>`);
+}
+function saveDayNote(dateStr, btn) {
+  if (!state.dayNotes) state.dayNotes = {};
+  state.dayNotes[dateStr] = document.getElementById('daynote-ta').value.trim();
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  renderToday();
+  showToast('Заметка сохранена');
+}
+
+function openDoseMenu(e, suppId, doseId, dateStr) {
+  e.stopPropagation();
+  const log = getLog(dateStr, suppId, doseId);
+  const supp = state.supplements.find(s=>s.id===suppId);
+  const ov = openModal(`
+    <div class="modal-title">${supp?supp.name:'БАД'}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${log ? `<button class="btn btn-danger btn-sm" onclick="cancelLog('${suppId}','${doseId}','${dateStr}',this)">Отменить отметку</button>` : `<button class="btn btn-primary btn-sm" onclick="manualLog('${suppId}','${doseId}','${dateStr}',this)">Отметить вручную</button>`}
+      <button class="btn btn-secondary btn-sm" onclick="openPauseForDose('${suppId}','${dateStr}',this)">Поставить паузу</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSkipDose('${suppId}','${doseId}','${dateStr}',this)">Пропустить</button>
+      <button class="btn btn-secondary btn-sm" onclick="closeModal(this.closest('.modal-overlay'))">Закрыть</button>
+    </div>`);
+}
+function cancelLog(suppId, doseId, dateStr, btn) {
+  setLog(dateStr, suppId, doseId, null);
+  closeModal(btn.closest('.modal-overlay'));
+  renderToday();
+  showToast('Отметка отменена');
+}
+function manualLog(suppId, doseId, dateStr, btn) {
+  setLog(dateStr, suppId, doseId, new Date(dateStr).toISOString(), 'taken');
+  closeModal(btn.closest('.modal-overlay'));
+  renderToday();
+  showToast('Приём отмечен');
+}
+function openPauseForDose(suppId, dateStr, btn) {
+  closeModal(btn.closest('.modal-overlay'));
+  const reasons = ['Самочувствие','Анализы','Поездка','Рекомендация врача','Забыл взять с собой','Другое'];
+  openModal(`
+    <div class="modal-title">Пауза</div>
+    <div class="form-group">
+      <label class="form-label">Причина</label>
+      <select class="form-select" id="pause-reason">${reasons.map(r=>`<option>${r}</option>`).join('')}</select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="savePause('${suppId}','${dateStr}',this)">Сохранить</button>
+    </div>`);
+}
+function savePause(suppId, dateStr, btn) {
+  if (!state.pauses[dateStr]) state.pauses[dateStr] = [];
+  const reason = document.getElementById('pause-reason').value;
+  state.pauses[dateStr] = state.pauses[dateStr].filter(p=>p.suppId!==suppId);
+  state.pauses[dateStr].push({suppId, reason});
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  renderToday();
+  showToast('Пауза установлена');
+}
+function openSkipDose(suppId, doseId, dateStr, btn) {
+  closeModal(btn.closest('.modal-overlay'));
+  if (!state.dateExceptions[dateStr]) state.dateExceptions[dateStr] = [];
+  state.dateExceptions[dateStr] = state.dateExceptions[dateStr].filter(e=>!(e.suppId===suppId&&e.doseId===doseId));
+  state.dateExceptions[dateStr].push({suppId, doseId, action:'skip'});
+  saveState();
+  renderToday();
+  showToast('Приём пропущен');
+}
+
+// ─── COURSES TAB ─────────────────────────────────────────────────────────────
+function renderCourses() {
+  const actives = state.supplements.filter(s=>s.active&&!s.archived);
+  const needAttention = actives.filter(s => {
+    const st = getCourseStatus(s);
+    return ['nodate','need_start','rest_auto'].includes(st.phase);
+  });
+  const sorted = [...actives].sort((a,b) => {
+    const sa = getCourseStatus(a), sb = getCourseStatus(b);
+    const order = {need_start:0, rest_auto:1, nodate:2, active:3, permanent:4, rest:5};
+    return (order[sa.phase]||9) - (order[sb.phase]||9);
+  });
+
+  const content = document.getElementById('main-content');
+  content.innerHTML = `
+    <div class="page-header" style="padding:14px 16px 12px"><div class="page-title">Курсы</div></div>
+    <div style="padding:0 12px 16px">
+      <div class="info-box">Укажите дату начала каждого курса. После завершения курса БАД автоматически переходит в режим отдыха.</div>
+      ${needAttention.length ? `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--yellow)">⚠️ Требуют внимания (${needAttention.length})</div>` : ''}
+      ${sorted.map(s => renderCourseCard(s)).join('')}
+    </div>`;
+}
+
+function renderCourseCard(supp) {
+  const c = state.courseCycles[supp.id] || {};
+  const st = getCourseStatus(supp);
+  const badgeClass = {active:'badge-green',rest:'badge-gray',permanent:'badge-blue',nodate:'badge-gray',need_start:'badge-yellow',rest_auto:'badge-yellow'}[st.phase]||'badge-gray';
+  const isNeedAction = ['need_start','rest_auto','nodate'].includes(st.phase);
+
+  let progressHtml = '';
+  if (st.phase === 'active' && st.total) {
+    const pct = Math.min(100, Math.round((st.passed||0)/st.total*100));
+    progressHtml = `<div class="course-bar-info"><span>День ${(st.passed||0)+1} из ${st.total}</span><span>осталось ${st.dLeft||0} дн.</span></div><div class="course-bar"><div class="course-bar-fill" style="width:${pct}%"></div></div>`;
+  }
+  if (st.phase === 'rest' && c.restEndDate) {
+    const total = diffDays(c.endDate||c.startDate, c.restEndDate);
+    const passed = diffDays(c.endDate||c.startDate, today());
+    const pct = total ? Math.min(100, Math.round(passed/total*100)) : 0;
+    progressHtml = `<div class="course-bar-info"><span>Отдых</span><span>до ${formatDate(c.restEndDate)}</span></div><div class="course-bar"><div class="course-bar-fill" style="width:${pct}%;background:var(--gray)"></div></div>`;
+  }
+
+  return `<div class="course-card${isNeedAction?' attention':''}${st.phase==='rest'?' rest':''}">
+    <div class="course-header">
+      <div class="course-name">${supp.name}</div>
+      <span class="badge ${badgeClass}">${st.label}</span>
+    </div>
+    <div class="course-meta">
+      ${supp.courseType==='permanent' ? 'Постоянный приём' : supp.courseType==='3/3' ? '3 мес приём / 3 мес отдых' : `${supp.courseDays||'?'} дн. приём${supp.restDays?' / '+supp.restDays+' дн. отдых':''}` }
+      ${c.startDate ? ` · начало: ${formatDate(c.startDate)}` : ''}
+    </div>
+    ${progressHtml}
+    <div class="course-actions">
+      ${st.phase === 'permanent' ? '' : st.phase === 'nodate' || !c.startDate
+        ? `<button class="btn btn-primary btn-sm" onclick="openSetCourseDate('${supp.id}')">Указать дату начала</button>`
+        : st.phase === 'need_start' || st.phase === 'rest_auto'
+          ? `<button class="btn btn-primary btn-sm" onclick="startNewCycle('${supp.id}')">Начать новый курс</button>`
+          : `<button class="btn btn-secondary btn-sm" onclick="openSetCourseDate('${supp.id}')">Изменить</button>
+             ${st.phase==='active'?`<button class="btn btn-secondary btn-sm" onclick="finishCourseNow('${supp.id}')">Завершить курс</button>`:''}` }
+      <button class="btn btn-secondary btn-sm" onclick="openCourseEdit('${supp.id}')">⚙ Настройки</button>
+    </div>
+  </div>`;
+}
+
+function openSetCourseDate(suppId) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  if (!supp) return;
+  const c = state.courseCycles[suppId] || {};
+  openModal(`
+    <div class="modal-title">${supp.name}</div>
+    <div class="form-group">
+      <label class="form-label">Дата начала курса</label>
+      <input type="date" class="form-input" id="cd-start" value="${c.startDate||today()}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="saveCourseStart('${suppId}',this)">Сохранить</button>
+    </div>`);
+}
+function saveCourseStart(suppId, btn) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  if (!supp) return;
+  const startDate = document.getElementById('cd-start').value;
+  if (!startDate) return;
+  const days = supp.courseDays||90;
+  const endDate = addDays(startDate, days-1);
+  const restEnd = supp.restDays ? addDays(endDate, supp.restDays) : null;
+  state.courseCycles[suppId] = {startDate, endDate, phase:'active', courseDays:days, restEndDate:restEnd, cycle:(state.courseCycles[suppId]?.cycle||0)};
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  renderCourses();
+  showToast('Курс запущен');
+}
+function startNewCycle(suppId) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  if (!supp) return;
+  openModal(`
+    <div class="modal-title">Начать новый курс</div>
+    <div class="form-group">
+      <label class="form-label">Дата начала</label>
+      <input type="date" class="form-input" id="nc-start" value="${today()}">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="confirmNewCycle('${suppId}',this)">Начать</button>
+    </div>`);
+}
+function confirmNewCycle(suppId, btn) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  const startDate = document.getElementById('nc-start').value;
+  if (!startDate || !supp) return;
+  const days = supp.courseDays||90;
+  const endDate = addDays(startDate, days-1);
+  const restEnd = supp.restDays ? addDays(endDate, supp.restDays) : null;
+  const prev = state.courseCycles[suppId]||{};
+  state.courseCycles[suppId] = {startDate, endDate, phase:'active', courseDays:days, restEndDate:restEnd, cycle:(prev.cycle||0)+1};
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  renderCourses();
+  showToast('Новый курс начат');
+}
+function finishCourseNow(suppId) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  const c = state.courseCycles[suppId];
+  if (!c || !supp) return;
+  confirm('Завершить курс?', 'БАД перейдёт в режим отдыха.', () => {
+    c.endDate = today();
+    c.phase = supp.restDays ? 'rest' : 'need_start';
+    c.restEndDate = supp.restDays ? addDays(today(), supp.restDays) : null;
+    saveState();
+    renderCourses();
+    showToast('Курс завершён');
+  });
+}
+function openCourseEdit(suppId) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  if (!supp) return;
+  const ov = openModal(`
+    <div class="modal-title">Настройки курса · ${supp.name}</div>
+    <div class="form-group">
+      <label class="form-label">Схема</label>
+      <select class="form-select" id="ce-type" onchange="updateCourseEditFields()">
+        <option value="permanent" ${supp.courseType==='permanent'?'selected':''}>Постоянный приём</option>
+        <option value="3/3" ${supp.courseType==='3/3'?'selected':''}>3 мес / 3 мес отдых</option>
+        <option value="days" ${supp.courseType==='days'?'selected':''}>Указать дни</option>
+        <option value="custom" ${supp.courseType==='custom'?'selected':''}>Произвольно</option>
+      </select>
+    </div>
+    <div id="ce-fields">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Длительность курса (дн.)</label><input type="number" class="form-input" id="ce-days" value="${supp.courseDays||90}" min="1"></div>
+        <div class="form-group"><label class="form-label">Длительность отдыха (дн.)</label><input type="number" class="form-input" id="ce-rest" value="${supp.restDays||0}" min="0"></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="saveCourseEdit('${suppId}',this)">Сохранить</button>
+    </div>`);
+}
+function updateCourseEditFields() {
+  const type = document.getElementById('ce-type')?.value;
+  const fields = document.getElementById('ce-fields');
+  if (!fields) return;
+  if (type === 'permanent') { fields.style.display='none'; return; }
+  fields.style.display='';
+  if (type === '3/3') { document.getElementById('ce-days').value=90; document.getElementById('ce-rest').value=90; }
+}
+function saveCourseEdit(suppId, btn) {
+  const supp = state.supplements.find(s=>s.id===suppId);
+  if (!supp) return;
+  supp.courseType = document.getElementById('ce-type').value;
+  if (supp.courseType !== 'permanent') {
+    supp.courseDays = parseInt(document.getElementById('ce-days').value)||90;
+    supp.restDays = parseInt(document.getElementById('ce-rest').value)||0;
+  }
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  renderCourses();
+  showToast('Настройки курса сохранены');
+}
+// ─── HISTORY TAB ─────────────────────────────────────────────────────────────
+let historyMonth = new Date();
+let selectedHistDate = today();
+
+function renderHistory() {
+  const content = document.getElementById('main-content');
+  content.innerHTML = `
+    <div class="page-header" style="padding:14px 16px 12px"><div class="page-title">История</div></div>
+    <div style="padding:0 12px 16px">
+      ${renderCalendar()}
+      <div id="hist-day-detail"></div>
+    </div>`;
+  renderHistDayDetail(selectedHistDate);
+}
+
+function renderCalendar() {
+  const y = historyMonth.getFullYear(), m = historyMonth.getMonth();
+  const firstDow = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  let cells = '';
+  for (let i=0;i<firstDow;i++) cells += '<div class="cal-day" style="opacity:0"></div>';
+  for (let d=1;d<=daysInMonth;d++) {
+    const ds = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const col = getDayColor(ds);
+    const isToday = ds === today();
+    const isSel = ds === selectedHistDate;
+    cells += `<div class="cal-day ${col}${isToday?' today':''}${isSel?' selected':''}" onclick="selectHistDate('${ds}')">${d}</div>`;
+  }
+  return `<div class="calendar">
+    <div class="cal-header">
+      <button class="btn-icon" onclick="changeHistMonth(-1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+      <div class="cal-title">${MONTHS_RU[m]} ${y}</div>
+      <button class="btn-icon" onclick="changeHistMonth(1)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+    </div>
+    <div class="cal-grid">${['Вс','Пн','Вт','Ср','Чт','Пт','Сб'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}${cells}</div>
+  </div>`;
+}
+
+function changeHistMonth(delta) {
+  historyMonth = new Date(historyMonth.getFullYear(), historyMonth.getMonth()+delta, 1);
+  renderHistory();
+}
+function selectHistDate(ds) {
+  selectedHistDate = ds;
+  renderHistory();
+}
+
+function renderHistDayDetail(dateStr) {
+  const d = parseLocalDate(dateStr);
+  const doses = getDosesForDate(dateStr);
+  const stats = getDayStats(dateStr);
+  const note = state.dayNotes && state.dayNotes[dateStr];
+  let html = `<div style="font-size:15px;font-weight:600;margin-bottom:10px">${d.getDate()} ${MONTHS_GEN[d.getMonth()]} · ${stats.taken}/${stats.total} приёмов · ${stats.pct}%</div>`;
+  if (note) html += `<div class="warn-box" style="margin-bottom:8px">📝 ${note}</div>`;
+  if (!doses.length) { html += '<div class="empty" style="padding:24px"><div class="empty-sub">Нет запланированных приёмов</div></div>'; }
+  doses.forEach(dose => {
+    const log = getLog(dateStr, dose.suppId, dose.doseId);
+    const isDone = log && log.status === 'taken';
+    html += `<div class="history-dose-row">
+      <div>
+        <div style="font-size:14px;font-weight:500">${dose.supp.name}</div>
+        <div style="font-size:12px;color:var(--text2)">${dose.supp.doseText||''}</div>
+      </div>
+      <div style="text-align:right">
+        ${isDone
+          ? `<div class="badge badge-green">✓ ${formatTime(log.takenAt)}</div>
+             <div style="margin-top:4px"><button class="btn btn-secondary btn-sm" onclick="cancelLog('${dose.suppId}','${dose.doseId}','${dateStr}',this);renderHistory()">Отменить</button></div>`
+          : `<div class="badge badge-gray">—</div>
+             <div style="margin-top:4px"><button class="btn btn-primary btn-sm" onclick="manualLogDate('${dose.suppId}','${dose.doseId}','${dateStr}')">Отметить</button></div>`}
+      </div>
+    </div>`;
+  });
+  html += `<button class="btn btn-secondary btn-sm btn-full" style="margin-top:10px" onclick="openDayNote('${dateStr}')">📝 Заметка</button>`;
+  document.getElementById('hist-day-detail').innerHTML = html;
+}
+
+function manualLogDate(suppId, doseId, dateStr) {
+  const d = parseLocalDate(dateStr);
+  d.setHours(12,0,0,0);
+  setLog(dateStr, suppId, doseId, d.toISOString(), 'taken');
+  renderHistDayDetail(dateStr);
+  if (dateStr === today()) renderToday();
+  showToast('Приём отмечен');
+}
+
+// ─── STATS TAB ───────────────────────────────────────────────────────────────
+let statsFilter = 'all';
+
+function renderStats() {
+  const t = today();
+  let totalPlanned7=0,totalTaken7=0,totalPlanned30=0,totalTaken30=0;
+  const activeSups = state.supplements.filter(s=>s.active&&!s.archived);
+
+  for (let i=0;i<30;i++) {
+    const d = addDays(t,-i);
+    const st = getDayStats(d);
+    if (i<7) { totalPlanned7+=st.total; totalTaken7+=st.taken; }
+    totalPlanned30+=st.total; totalTaken30+=st.taken;
+  }
+  const pct7 = totalPlanned7 ? Math.round(totalTaken7/totalPlanned7*100) : 0;
+  const pct30 = totalPlanned30 ? Math.round(totalTaken30/totalPlanned30*100) : 0;
+
+  // bar chart last 14 days
+  const barDays = 14;
+  const bars = [];
+  for (let i=barDays-1;i>=0;i--) {
+    const d = addDays(t,-i);
+    const st = getDayStats(d);
+    bars.push({d, pct:st.pct, lbl:parseLocalDate(d).getDate()});
+  }
+  const barsHtml = bars.map(b=>`<div class="bar-col">
+    <div class="bar-fill" style="height:${b.pct}%;background:${b.pct===100?'var(--green)':b.pct>0?'var(--accent)':'var(--border)'}"></div>
+    <div class="bar-label">${b.lbl}</div>
+  </div>`).join('');
+
+  const suppRows = activeSups.map(s => {
+    const adh7 = getAdherencePct(s.id, 7);
+    const adh30 = getAdherencePct(s.id, 30);
+    const streak = getStreak(s.id, t);
+    return `<div class="card card-sm" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${getCatColor(s)};flex-shrink:0"></div>
+        <div style="font-weight:500;font-size:14px;flex:1">${s.name}</div>
+        <span class="badge ${adh30>=80?'badge-green':adh30>=50?'badge-yellow':'badge-red'}">${adh30}%</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;color:var(--text2)">
+        <div>7 дн: <strong style="color:var(--text)">${adh7}%</strong></div>
+        <div>30 дн: <strong style="color:var(--text)">${adh30}%</strong></div>
+        <div>Серия: <strong style="color:var(--text)">${streak} дн.</strong></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header" style="padding:14px 16px 12px"><div class="page-title">Статистика</div></div>
+    <div style="padding:0 12px 16px">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-n">${pct7}%</div><div class="stat-l">7 дней</div></div>
+        <div class="stat-card"><div class="stat-n">${pct30}%</div><div class="stat-l">30 дней</div></div>
+        <div class="stat-card"><div class="stat-n">${totalTaken30}</div><div class="stat-l">Принято за 30 дней</div></div>
+        <div class="stat-card"><div class="stat-n">${totalPlanned30-totalTaken30}</div><div class="stat-l">Пропущено за 30 дней</div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px">
+        <div style="font-size:13px;font-weight:600;margin-bottom:10px">Последние 14 дней</div>
+        <div class="bar-chart">${barsHtml}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:10px">По БАДам</div>
+      ${suppRows || '<div class="empty-sub">Нет активных БАДов</div>'}
+    </div>`;
+}
+
+// ─── ADMIN TAB ────────────────────────────────────────────────────────────────
+let adminSearch = '';
+let adminFilter = 'all';
+
+function renderAdmin() {
+  const supps = state.supplements.filter(s => {
+    if (adminSearch && !s.name.toLowerCase().includes(adminSearch.toLowerCase()) && !s.brand.toLowerCase().includes(adminSearch.toLowerCase())) return false;
+    if (adminFilter === 'active') return s.active && !s.archived;
+    if (adminFilter === 'disabled') return !s.active;
+    if (adminFilter === 'archived') return s.archived;
+    return !s.archived;
+  });
+
+  document.getElementById('main-content').innerHTML = `
+    <div style="background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="page-title">Админка</div>
+        <button class="btn btn-primary btn-sm" onclick="openAddSupp()">+ Добавить</button>
+      </div>
+      <input type="search" class="form-input" placeholder="Поиск..." value="${adminSearch}" oninput="adminSearch=this.value;renderAdmin()" style="margin-bottom:10px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${['all','active','disabled','archived'].map(f=>`<div class="chip${adminFilter===f?' selected':''}" onclick="adminFilter='${f}';renderAdmin()">${{all:'Все',active:'Активные',disabled:'Отключённые',archived:'Архив'}[f]}</div>`).join('')}
+      </div>
+    </div>
+    <div style="padding:12px 12px 16px">
+      ${supps.length === 0 ? '<div class="empty"><div class="empty-sub">Ничего не найдено</div></div>' : supps.map(s=>renderAdminItem(s)).join('')}
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px">Данные и настройки</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Экспорт в JSON</button>
+          <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Импорт из JSON</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(this)">
+          <button class="btn btn-secondary btn-sm" onclick="openNotifSettings()">🔔 Уведомления</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">🌓 ${state.appSettings.darkTheme?'Светлая тема':'Тёмная тема'}</button>
+          <button class="btn btn-secondary btn-sm" onclick="openDisplaySettings()">⚙ Отображение принятых</button>
+          <button class="btn btn-danger btn-sm" onclick="restoreDefault()">♻ Восстановить исходный список</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderAdminItem(s) {
+  return `<div class="admin-item${s.active?'':' disabled'}">
+    <div class="admin-item-header">
+      <div class="admin-item-name">
+        <div style="width:10px;height:10px;border-radius:50%;background:${getCatColor(s)}"></div>
+        ${s.name}
+        ${s.brand?`<span style="font-weight:400;font-size:12px;color:var(--text2)">${s.brand}</span>`:''}
+      </div>
+      <div class="toggle${s.active?' on':''}" onclick="toggleSuppActive('${s.id}')"></div>
+    </div>
+    <div class="admin-item-sub">${s.doseText||''} · ${CATEGORY_LABELS[s.category]||s.category} · ${s.courseType==='permanent'?'Постоянно':s.courseType==='3/3'?'3/3':s.courseDays+'дн.'}</div>
+    <div class="admin-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openEditSupp('${s.id}')">✏ Редактировать</button>
+      <button class="btn btn-secondary btn-sm" onclick="duplicateSupp('${s.id}')">📋 Дублировать</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteSupp('${s.id}')">🗑 Удалить</button>
+    </div>
+  </div>`;
+}
+
+function toggleSuppActive(suppId) {
+  const s = state.supplements.find(x=>x.id===suppId);
+  if (!s) return;
+  s.active = !s.active;
+  saveState();
+  renderAdmin();
+}
+
+function duplicateSupp(suppId) {
+  const s = state.supplements.find(x=>x.id===suppId);
+  if (!s) return;
+  const newS = JSON.parse(JSON.stringify(s));
+  newS.id = 's'+uid();
+  newS.name = s.name + ' (копия)';
+  newS.intakes = newS.intakes.map(i=>({...i, id:'d'+uid()}));
+  state.supplements.push(newS);
+  saveState();
+  renderAdmin();
+  showToast('БАД скопирован');
+}
+
+function deleteSupp(suppId) {
+  const s = state.supplements.find(x=>x.id===suppId);
+  if (!s) return;
+  confirm('Удалить «'+s.name+'»?', 'История приёмов будет сохранена. Отменить нельзя.', () => {
+    state.supplements = state.supplements.filter(x=>x.id!==suppId);
+    delete state.courseCycles[suppId];
+    saveState();
+    renderAdmin();
+    showToast('БАД удалён');
+  }, 'Удалить', true);
+}
+
+function exportData() {
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `bads_backup_${today()}.json`;
+  a.click();
+  showToast('Данные экспортированы');
+}
+function importData() {
+  document.getElementById('import-file').click();
+}
+function handleImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.supplements) throw new Error('Неверный формат файла');
+      confirm('Импортировать данные?', 'Текущие данные будут заменены. Перед импортом рекомендуется сделать экспорт.', () => {
+        Object.assign(state, data);
+        saveState();
+        renderAdmin();
+        showToast('Данные импортированы');
+      });
+    } catch(err) { showToast('Ошибка импорта: '+err.message, 4000); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function restoreDefault() {
+  confirm('Восстановить исходный список?', 'Текущие БАДы будут заменены исходным списком из протокола. История и настройки курсов сохранятся.', () => {
+    state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
+    saveState();
+    renderAdmin();
+    showToast('Исходный список восстановлен');
+  }, 'Восстановить', true);
+}
+
+function toggleTheme() {
+  state.appSettings.darkTheme = !state.appSettings.darkTheme;
+  document.documentElement.classList.toggle('dark', state.appSettings.darkTheme);
+  saveState();
+  renderAdmin();
+}
+
+function openDisplaySettings() {
+  const cur = state.appSettings.doneBehavior || 'dim';
+  openModal(`
+    <div class="modal-title">Принятые БАДы</div>
+    <div class="form-group">
+      <label class="form-label">Что делать с принятыми</label>
+      <select class="form-select" id="ds-behavior">
+        <option value="dim" ${cur==='dim'?'selected':''}>Оставлять, но затемнять</option>
+        <option value="bottom" ${cur==='bottom'?'selected':''}>Перемещать вниз</option>
+        <option value="hide" ${cur==='hide'?'selected':''}>Скрывать</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="saveDisplaySettings(this)">Сохранить</button>
+    </div>`);
+}
+function saveDisplaySettings(btn) {
+  state.appSettings.doneBehavior = document.getElementById('ds-behavior').value;
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  showToast('Настройки сохранены');
+}
+
+function openNotifSettings() {
+  const ns = state.notifSettings;
+  openModal(`
+    <div class="modal-title">Уведомления</div>
+    <div class="warn-box">Уведомления работают только пока эта страница открыта в браузере. Фоновые push-уведомления не поддерживаются одним HTML-файлом без сервера.</div>
+    <div class="settings-row">
+      <div><div class="settings-label">Уведомления</div></div>
+      <div class="toggle${ns.enabled?' on':''}" id="notif-toggle" onclick="toggleNotifEnabled(this)"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Закрыть</button>
+      <button class="btn btn-primary" onclick="requestNotifPerm(p=>{showToast(p==='granted'?'Разрешено':'Отклонено');})">Запросить разрешение</button>
+    </div>`);
+}
+function toggleNotifEnabled(el) {
+  state.notifSettings.enabled = !state.notifSettings.enabled;
+  el.classList.toggle('on', state.notifSettings.enabled);
+  saveState();
+  if (state.notifSettings.enabled) scheduleNotifs();
+}
+// ─── ADD / EDIT SUPPLEMENT ───────────────────────────────────────────────────
+function openAddSupp() { openSuppForm(null); }
+function openEditSupp(suppId) { openSuppForm(suppId); }
+
+function openSuppForm(suppId) {
+  const s = suppId ? state.supplements.find(x=>x.id===suppId) : null;
+  const isEdit = !!s;
+  const intakes = s ? s.intakes : [{id:'d'+uid(), time:'08:00', period:'morning', qty:1, food:'any'}];
+
+  const ov = openModal(`
+    <div class="modal-title">${isEdit?'Редактировать':'Добавить'} БАД</div>
+    <div class="form-group"><label class="form-label">Название *</label><input class="form-input" id="sf-name" value="${s?.name||''}" placeholder="Название"></div>
+    <div class="form-group"><label class="form-label">Бренд</label><input class="form-input" id="sf-brand" value="${s?.brand||''}" placeholder="Производитель"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Категория</label>
+        <select class="form-select" id="sf-cat">
+          ${Object.entries(CATEGORY_LABELS).map(([k,v])=>`<option value="${k}" ${s?.category===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Форма</label>
+        <select class="form-select" id="sf-form">
+          ${[['capsule','Капсула'],['tablet','Таблетка'],['powder','Порошок'],['drops','Капли'],['liquid','Жидкость'],['spray','Спрей'],['other','Другое']].map(([k,v])=>`<option value="${k}" ${s?.form===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Единица измерения</label><input class="form-input" id="sf-unit" value="${s?.doseUnit||'капс'}" placeholder="капс, мл, таб..."></div>
+    <div class="form-group"><label class="form-label">Описание дозировки</label><input class="form-input" id="sf-dosetext" value="${s?.doseText||''}" placeholder="1 капс с едой"></div>
+    <div class="form-group"><label class="form-label">Цвет</label>
+      <div class="color-swatches" id="sf-colors">
+        ${COLOR_PRESETS.map(c=>`<div class="color-swatch${(s?.color||getCatColor(s||{category:'other'}))===c?' selected':''}" style="background:${c}" onclick="selectColor('${c}',this)"></div>`).join('')}
+      </div>
+      <input type="hidden" id="sf-color" value="${s?.color||'#6b7280'}">
+    </div>
+    <div class="form-group"><label class="form-label">Примечание</label><textarea class="form-textarea" id="sf-note" placeholder="Дополнительная информация">${s?.note||''}</textarea></div>
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px;margin-top:4px">Приёмы в день</div>
+    <div id="sf-intakes">
+      ${intakes.map((int,idx) => renderIntakeRow(int, idx)).join('')}
+    </div>
+    <button class="btn btn-secondary btn-sm" style="margin-bottom:16px" onclick="addIntakeRow()">+ Добавить приём</button>
+    <div style="font-size:14px;font-weight:600;margin-bottom:10px">Курс</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Схема</label>
+        <select class="form-select" id="sf-ctype">
+          <option value="permanent" ${s?.courseType==='permanent'?'selected':''}>Постоянно</option>
+          <option value="3/3" ${s?.courseType==='3/3'?'selected':''}>3 мес / 3 мес</option>
+          <option value="days" ${s?.courseType==='days'?'selected':''}>Дни</option>
+          <option value="custom" ${s?.courseType==='custom'?'selected':''}>Произвольно</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Дней приёма</label>
+        <input type="number" class="form-input" id="sf-cdays" value="${s?.courseDays||90}" min="1">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Дней отдыха</label>
+      <input type="number" class="form-input" id="sf-rdays" value="${s?.restDays||0}" min="0">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Расписание</label>
+      <select class="form-select" id="sf-sched">
+        <option value="" ${!s?.schedule?'selected':''}>Ежедневно</option>
+        <option value="weekly" ${s?.schedule==='weekly'?'selected':''}>По дням недели</option>
+        <option value="altday" ${s?.schedule==='altday'?'selected':''}>Через день</option>
+      </select>
+    </div>
+    <div id="sf-weekly" style="${s?.schedule==='weekly'?'':'display:none'}">
+      <label class="form-label">Дни недели</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+        ${DOW.map((d,i)=>`<div class="chip${(s?.scheduleDays||[]).includes(i)?' selected':''}" onclick="toggleDay(${i},this)">${d}</div>`).join('')}
+      </div>
+    </div>
+    <div class="form-group" style="display:flex;align-items:center;justify-content:space-between">
+      <label class="form-label" style="margin:0">Активен</label>
+      <div class="toggle${s?.active!==false?' on':''}" id="sf-active-toggle" onclick="this.classList.toggle('on')"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="saveSuppForm('${suppId||''}',this)">Сохранить</button>
+    </div>
+  `, ov => {
+    document.getElementById('sf-sched').addEventListener('change', function() {
+      document.getElementById('sf-weekly').style.display = this.value==='weekly'?'':'display:none';
+    });
+  });
+}
+
+function renderIntakeRow(int, idx) {
+  return `<div class="card card-sm" style="margin-bottom:8px" id="int-row-${int.id}">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:13px;font-weight:500">Приём ${idx+1}</div>
+      <button class="btn btn-secondary btn-sm" onclick="removeIntakeRow('${int.id}')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Время</label>
+        <input type="time" class="form-input" id="int-time-${int.id}" value="${int.time||'08:00'}">
+      </div>
+      <div class="form-group" style="margin-bottom:8px">
+        <label class="form-label">Период</label>
+        <select class="form-select" id="int-period-${int.id}">
+          ${Object.entries(PERIOD_LABELS).map(([k,v])=>`<option value="${k}" ${int.period===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">Кол-во</label>
+        <input type="number" class="form-input" id="int-qty-${int.id}" value="${int.qty||1}" min="0.25" step="0.25">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label class="form-label">С едой</label>
+        <select class="form-select" id="int-food-${int.id}">
+          ${Object.entries(FOOD_LABELS).map(([k,v])=>`<option value="${k}" ${int.food===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  </div>`;
+}
+
+let _tempIntakes = [];
+function addIntakeRow() {
+  const container = document.getElementById('sf-intakes');
+  if (!container) return;
+  const int = {id:'d'+uid(), time:'13:00', period:'day', qty:1, food:'any'};
+  const div = document.createElement('div');
+  div.innerHTML = renderIntakeRow(int, container.children.length+1);
+  container.appendChild(div.firstElementChild);
+}
+function removeIntakeRow(intId) {
+  const el = document.getElementById('int-row-'+intId);
+  if (el) el.remove();
+}
+function selectColor(color, el) {
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('sf-color').value = color;
+}
+function toggleDay(dayIdx, el) {
+  el.classList.toggle('selected');
+}
+
+function saveSuppForm(suppId, btn) {
+  const name = document.getElementById('sf-name').value.trim();
+  if (!name) { showToast('Введите название'); return; }
+
+  // Collect intakes
+  const intakeEls = document.querySelectorAll('[id^="int-row-"]');
+  const intakes = [];
+  intakeEls.forEach(row => {
+    const intId = row.id.replace('int-row-','');
+    const time = document.getElementById('int-time-'+intId)?.value||'08:00';
+    const period = document.getElementById('int-period-'+intId)?.value||'morning';
+    const qty = parseFloat(document.getElementById('int-qty-'+intId)?.value||1);
+    const food = document.getElementById('int-food-'+intId)?.value||'any';
+    intakes.push({id:intId, time, period, qty, food});
+  });
+  if (!intakes.length) { showToast('Добавьте хотя бы один приём'); return; }
+
+  const schedEl = document.getElementById('sf-sched');
+  const schedule = schedEl ? schedEl.value : '';
+  const scheduleDays = schedule==='weekly'
+    ? Array.from(document.querySelectorAll('.chip.selected[onclick^="toggleDay"]')).map(el=>parseInt(el.getAttribute('onclick').match(/\d+/)[0]))
+    : [];
+
+  const supp = {
+    id: suppId || 's'+uid(),
+    name,
+    brand: document.getElementById('sf-brand').value.trim(),
+    category: document.getElementById('sf-cat').value,
+    color: document.getElementById('sf-color').value,
+    form: document.getElementById('sf-form').value,
+    doseUnit: document.getElementById('sf-unit').value.trim()||'ед.',
+    doseText: document.getElementById('sf-dosetext').value.trim(),
+    note: document.getElementById('sf-note').value.trim(),
+    courseType: document.getElementById('sf-ctype').value,
+    courseDays: parseInt(document.getElementById('sf-cdays').value)||90,
+    restDays: parseInt(document.getElementById('sf-rdays').value)||0,
+    schedule: schedule||undefined,
+    scheduleDays: scheduleDays.length?scheduleDays:undefined,
+    active: document.getElementById('sf-active-toggle').classList.contains('on'),
+    archived: false,
+    intakes
+  };
+
+  if (suppId) {
+    const idx = state.supplements.findIndex(x=>x.id===suppId);
+    if (idx>-1) state.supplements[idx] = supp;
+  } else {
+    state.supplements.push(supp);
+  }
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  renderAdmin();
+  showToast(suppId?'Изменения сохранены':'БАД добавлен');
+}
+
+// ─── APP CONTROLLER ──────────────────────────────────────────────────────────
+const App = {
+  currentTab: 'today',
+  nav(tab) {
+    this.currentTab = tab;
+    document.querySelectorAll('#bottom-nav button').forEach(b=>b.classList.remove('active'));
+    const btn = document.getElementById('nav-'+tab);
+    if (btn) btn.classList.add('active');
+    this.render(tab);
+  },
+  render(tab) {
+    switch(tab) {
+      case 'today': renderToday(); break;
+      case 'courses': renderCourses(); break;
+      case 'history': renderHistory(); break;
+      case 'stats': renderStats(); break;
+      case 'admin': renderAdmin(); break;
+    }
+  }
+};
+
+// ─── BOOT ────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadState();
+  if (state.appSettings?.darkTheme) document.documentElement.classList.add('dark');
+  App.render('today');
+
+  // Auto-check course transitions daily
+  setInterval(() => {
+    let changed = false;
+    state.supplements.forEach(s => {
+      const c = state.courseCycles[s.id];
+      if (!c || c.phase !== 'active') return;
+      if (c.endDate && today() > c.endDate) {
+        c.phase = s.restDays ? 'rest' : 'need_start';
+        if (s.restDays && !c.restEndDate) c.restEndDate = addDays(c.endDate, s.restDays);
+        changed = true;
+      }
+    });
+    if (changed) { saveState(); if(App.currentTab==='courses') renderCourses(); }
+  }, 60000);
+
+  scheduleNotifs();
+});
+</script>
+</body></html>
