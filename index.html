@@ -384,6 +384,14 @@ function loadState() {
   } catch(e) {
     state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
   }
+  // Очистить ручные dateExceptions для s1 и s2 (заменены авточередованием)
+  if (state.dateExceptions) {
+    Object.keys(state.dateExceptions).forEach(dateStr => {
+      state.dateExceptions[dateStr] = (state.dateExceptions[dateStr] || [])
+        .filter(e => e.suppId !== 's1' && e.suppId !== 's2');
+      if (!state.dateExceptions[dateStr].length) delete state.dateExceptions[dateStr];
+    });
+  }
   // Then sync from Sheets in background
   syncFromSheets();
 }
@@ -523,6 +531,16 @@ function isSuppActiveToday(supp, dateStr) {
   return true;
 }
 function isScheduledOnDate(supp, dateStr) {
+  // Авточередование магния: s1 — чётные дни от 2026-07-12, s2 — нечётные
+  const MAG_REF = '2026-07-12';
+  if (supp.id === 's1') {
+    const d = diffDays(MAG_REF, dateStr);
+    return d >= 0 && d % 2 === 0;
+  }
+  if (supp.id === 's2') {
+    const d = diffDays(MAG_REF, dateStr);
+    return d >= 0 && d % 2 === 1;
+  }
   if (!supp.schedule) return true; // daily
   if (supp.schedule === 'weekly') {
     const dow = parseLocalDate(dateStr).getDay();
@@ -1294,6 +1312,7 @@ function renderAdmin() {
         <div style="font-size:14px;font-weight:600;margin-bottom:10px">Данные и настройки</div>
         <div style="display:flex;flex-direction:column;gap:8px">
           <button class="btn btn-secondary btn-sm" onclick="syncNow()">🔄 Синхронизировать с облаком</button>
+          <button class="btn btn-secondary btn-sm" onclick="openBackfillHistory()">📅 Заполнить историю задним числом</button>
           <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Экспорт в JSON</button>
           <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Импорт из JSON</button>
           <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(this)">
@@ -1356,6 +1375,82 @@ function deleteSupp(suppId) {
     renderAdmin();
     showToast('БАД удалён');
   }, 'Удалить', true);
+}
+
+function openBackfillHistory() {
+  const activeSups = state.supplements.filter(s => s.active && !s.archived);
+  const options = activeSups.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  // default: 2 months ago
+  const twoMonthsAgo = addCalendarMonths(today(), -2);
+  const yesterday = addDays(today(), -1);
+  openModal(`
+    <div class="modal-title">📅 Заполнить историю задним числом</div>
+    <div class="info-box" style="margin-bottom:14px">Создаст отметки о приёме за указанный период. Существующие отметки не будут затронуты.</div>
+    <div class="form-group">
+      <label class="form-label">БАД</label>
+      <select class="form-select" id="bf-supp">${options}</select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Дата начала</label>
+        <input type="date" class="form-input" id="bf-from" value="${twoMonthsAgo}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Дата окончания</label>
+        <input type="date" class="form-input" id="bf-to" value="${yesterday}">
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px">
+        <input type="checkbox" id="bf-skip-existing" checked> Пропускать дни, где уже есть отметка
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px">
+        <input type="checkbox" id="bf-respect-sched" checked> Учитывать расписание чередования
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="runBackfill(this)">Заполнить</button>
+    </div>`);
+}
+
+function runBackfill(btn) {
+  const suppId = document.getElementById('bf-supp').value;
+  const fromDate = document.getElementById('bf-from').value;
+  const toDate = document.getElementById('bf-to').value;
+  const skipExisting = document.getElementById('bf-skip-existing').checked;
+  const respectSched = document.getElementById('bf-respect-sched').checked;
+
+  if (!suppId || !fromDate || !toDate) { showToast('Заполните все поля'); return; }
+  if (fromDate > toDate) { showToast('Дата начала должна быть раньше окончания'); return; }
+
+  const supp = state.supplements.find(s => s.id === suppId);
+  if (!supp) return;
+
+  let added = 0, skipped = 0;
+  let d = fromDate;
+
+  while (d <= toDate) {
+    // Проверяем расписание чередования
+    if (respectSched && !isScheduledOnDate(supp, d)) { d = addDays(d, 1); continue; }
+
+    // Для каждого приёма в день
+    for (const intake of (supp.intakes || [])) {
+      const existing = getLog(d, suppId, intake.id);
+      if (skipExisting && existing) { skipped++; continue; }
+      // Создаём отметку в 09:00 по локальному времени
+      const logDate = parseLocalDate(d);
+      logDate.setHours(9, 0, 0, 0);
+      setLog(d, suppId, intake.id, logDate.toISOString(), 'taken');
+      added++;
+    }
+    d = addDays(d, 1);
+  }
+
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  showToast(`Добавлено ${added} отметок, пропущено ${skipped}`);
+  renderAdmin();
 }
 
 function syncNow() {
