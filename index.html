@@ -365,7 +365,7 @@ let state = {
   notifTimers: []
 };
 
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbw8vMZBZ7bqIn5lEPeQxzeQBhR2uj8QWYGFlPk9yBUOHar65AWCeFqrdwD5qB6gD68/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwe_m_ZHiIV8Gd_8UhPhplyiz0CxNkvx1gYBjavppwsa7UoFqIAsBFXOqMgwLrJKVzm/exec';
 let _saveTimer = null;
 let _syncStatus = 'ok'; // ok | saving | error
 
@@ -435,12 +435,9 @@ function saveState() {
 }
 
 function saveToSheets() {
-  const body = JSON.stringify(state);
-  fetch(SHEETS_URL, {
-    method: 'POST',
-    body,
-    headers: {'Content-Type': 'text/plain'}
-  })
+  const body = encodeURIComponent(JSON.stringify(state));
+  // Используем GET с параметром data — обходит CORS
+  fetch(SHEETS_URL + '?data=' + body)
   .then(r => r.text())
   .then(() => setSyncIndicator('ok'))
   .catch(e => {
