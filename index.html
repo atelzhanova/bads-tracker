@@ -365,7 +365,7 @@ let state = {
   notifTimers: []
 };
 
-const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbwe_m_ZHiIV8Gd_8UhPhplyiz0CxNkvx1gYBjavppwsa7UoFqIAsBFXOqMgwLrJKVzm/exec';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbxTdnqGWYcQSzM-dZcWUHd1riBhQm1GuIXNMQhhE14ULLnf6Et4BvHu0_JkVKGO_UsW/exec';
 let _saveTimer = null;
 let _syncStatus = 'ok'; // ok | saving | error
 
@@ -442,14 +442,39 @@ function saveState() {
 }
 
 function saveToSheets() {
-  const body = encodeURIComponent(JSON.stringify(state));
-  // GET + no-cors: данные пишутся в Sheets, ответ недоступен (это нормально)
-  fetch(SHEETS_URL + '?data=' + body, {mode: 'no-cors'})
-  .then(() => setSyncIndicator('ok'))
-  .catch(e => {
+  // Используем image trick для отправки данных без CORS ограничений
+  // Данные слишком большие для GET, отправляем через форму (form submit в iframe)
+  try {
+    const json = JSON.stringify(state);
+    // Создаём скрытый iframe + форму для POST без CORS
+    let iframe = document.getElementById('_sheets_iframe');
+    if (!iframe) {
+      iframe = document.createElement('iframe');
+      iframe.id = '_sheets_iframe';
+      iframe.name = '_sheets_iframe';
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+    }
+    let form = document.getElementById('_sheets_form');
+    if (form) form.remove();
+    form = document.createElement('form');
+    form.id = '_sheets_form';
+    form.method = 'POST';
+    form.action = SHEETS_URL;
+    form.target = '_sheets_iframe';
+    form.style.display = 'none';
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'data';
+    input.value = json;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+    setTimeout(() => setSyncIndicator('ok'), 2000);
+  } catch(e) {
     console.warn('Sheets save error', e);
     setSyncIndicator('error');
-  });
+  }
 }
 
 function setSyncIndicator(status) {
@@ -1465,28 +1490,13 @@ function runBackfill(btn) {
 }
 
 function syncNow() {
-  // Принудительно записать текущие данные в Sheets
   setSyncIndicator('saving');
-  const body = encodeURIComponent(JSON.stringify(state));
-  const url = SHEETS_URL + '?data=' + body;
-  
-  // Показываем что происходит
-  showToast('Отправка данных в облако...', 3000);
-  
-  fetch(url, {mode: 'no-cors'})
-    .then(() => {
-      setSyncIndicator('ok');
-      showToast('✓ Данные отправлены в Google Sheets');
-    })
-    .catch(e => {
-      console.warn('sync error', e);
-      setSyncIndicator('error');
-      showToast('⚠️ Ошибка отправки', 3000);
-    });
-    
-  // Также попробовать через img (абсолютно без CORS)
-  const img = new Image();
-  img.src = url;
+  showToast('Отправка данных в облако...', 2000);
+  saveToSheets();
+  setTimeout(() => {
+    setSyncIndicator('ok');
+    showToast('✓ Данные отправлены в Google Sheets');
+  }, 2500);
 }
 function exportData() {
   const json = JSON.stringify(state, null, 2);
