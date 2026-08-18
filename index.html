@@ -1465,9 +1465,28 @@ function runBackfill(btn) {
 }
 
 function syncNow() {
-  setSyncIndicator('loading');
-  syncFromSheets();
-  showToast('Синхронизация...');
+  // Принудительно записать текущие данные в Sheets
+  setSyncIndicator('saving');
+  const body = encodeURIComponent(JSON.stringify(state));
+  const url = SHEETS_URL + '?data=' + body;
+  
+  // Показываем что происходит
+  showToast('Отправка данных в облако...', 3000);
+  
+  fetch(url, {mode: 'no-cors'})
+    .then(() => {
+      setSyncIndicator('ok');
+      showToast('✓ Данные отправлены в Google Sheets');
+    })
+    .catch(e => {
+      console.warn('sync error', e);
+      setSyncIndicator('error');
+      showToast('⚠️ Ошибка отправки', 3000);
+    });
+    
+  // Также попробовать через img (абсолютно без CORS)
+  const img = new Image();
+  img.src = url;
 }
 function exportData() {
   const json = JSON.stringify(state, null, 2);
