@@ -271,6 +271,24 @@ input, select, textarea { font-family: inherit; font-size: 15px; color: var(--te
 
 /* Course progress bar label */
 .course-bar-info { display: flex; justify-content: space-between; font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+
+/* UX v2 */
+.cs-big { font-size: 15px; font-weight: 600; }
+.cs-line { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.mini-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.mc-h { font-size: 10px; color: var(--text3); text-align: center; }
+.mc-d { font-size: 11px; text-align: center; padding: 5px 0; border-radius: 6px; }
+.mc-full { background: var(--green); color: #fff; }
+.mc-part { background: var(--yellow-bg); color: var(--yellow); border: 1px solid var(--yellow); }
+.mc-miss { background: var(--red-bg); color: var(--red); }
+.mc-off { background: var(--gray-bg); color: var(--text3); }
+.mc-today { outline: 2px solid var(--accent); }
+.mc-legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text2); margin-top: 6px; }
+.mc-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; border: none; }
+.grp-title { font-size: 13px; font-weight: 600; margin: 16px 2px 8px; display: flex; justify-content: space-between; color: var(--text2); text-transform: uppercase; letter-spacing: .3px; }
+.clickable-name { cursor: pointer; }
+.clickable-name:active { opacity: .6; }
+.period-all { background: none; border: 1px solid var(--border); border-radius: 12px; font-size: 11px; padding: 2px 8px; color: var(--accent); cursor: pointer; margin-left: 8px; }
 </style>
 </head>
 <body>
@@ -298,7 +316,11 @@ input, select, textarea { font-family: inherit; font-size: 15px; color: var(--te
     </button>
     <button onclick="App.nav('admin')" id="nav-admin">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      Админ
+      БАДы
+    </button>
+    <button onclick="App.nav('settings')" id="nav-settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      Настройки
     </button>
   </nav>
 </div>
@@ -595,6 +617,7 @@ function getCourseStatus(supp) {
     const passed = diffDays(c.startDate, t);
     return {phase:'active', label:`Приём · день ${Math.max(0,passed)+1} из ${total}`, color:'green', passed, total, dLeft};
   }
+  if (c.phase === 'need_start') return {phase:'need_start', label:'Курс завершён — начать новый?', color:'yellow'};
   return {phase:'unknown', label:'Неизвестно', color:'gray'};
 }
 function isSuppActiveToday(supp, dateStr) {
@@ -833,7 +856,7 @@ function renderToday() {
     groupsHtml += `<div class="time-group">
       <div class="time-group-header">
         <span class="time-group-title">${PERIOD_LABELS[period]||period}</span>
-        <span class="time-group-count">${takenCount}/${items.length}</span>
+        <span style="display:flex;align-items:center"><span class="time-group-count">${takenCount}/${items.length}</span>${items.some(it=>!it.paused&&!getLog(dateStr,it.suppId,it.doseId)) ? `<button class="period-all" onclick="markPeriod('${period}')">✓ все</button>` : ''}</span>
       </div>
       <div class="time-group-body">
         ${visItems.map(dose => renderDoseItem(dose, dateStr)).join('')}
@@ -863,11 +886,12 @@ function renderToday() {
         <div style="flex:1">
           <div class="progress-bar"><div class="progress-fill" style="width:${stats.pct}%"></div></div>
         </div>
-        <div style="font-size:13px;color:var(--text2);white-space:nowrap">${stats.taken}/${stats.total} · ${stats.pct}%</div>
+        <div style="font-size:13px;color:var(--text2);white-space:nowrap">Выпито <b style="color:var(--text)">${stats.taken}</b> из ${stats.total} · ${stats.pct}%</div>
       </div>
     </div>
     <div style="padding:0 12px 16px">
       ${doses.length === 0 ? `<div class="empty"><div class="empty-icon">✓</div><div class="empty-title">Нет запланированных приёмов</div><div class="empty-sub">Настройте БАДы и даты курсов в разделе «Курсы»</div></div>` : groupsHtml}
+      ${renderOffCourseSection(dateStr)}
       ${isToday && doses.filter(d=>!getLog(dateStr,d.suppId,d.doseId)&&!d.paused).length > 1 ? `
       <button class="btn btn-secondary btn-full" style="margin-top:8px" onclick="markAllDue()">
         ✓ Отметить все запланированные до сейчас
@@ -902,7 +926,7 @@ function renderDoseItem(dose, dateStr) {
     </div>
     <div class="dose-dot" style="background:${color}"></div>
     <div class="dose-body">
-      <div class="dose-name">${dose.supp.name}${dose.supp.brand?` <span style="font-weight:400;color:var(--text2);font-size:13px">${dose.supp.brand}</span>`:''}</div>
+      <div class="dose-name clickable-name" onclick="openSuppCard('${dose.suppId}')">${dose.supp.name}${dose.supp.brand?` <span style="font-weight:400;color:var(--text2);font-size:13px">${dose.supp.brand}</span>`:''}</div>
       <div class="dose-sub">${doseText}${timeStr?' · '+timeStr:''}${takenAtStr}</div>
       <div class="dose-meta">${foodStr}${dose.supp.note ? ' · ' + dose.supp.note.slice(0,60) : ''}${streakStr}</div>
       ${isPaused?'<div class="dose-meta" style="color:var(--yellow)">⏸ Пауза сегодня</div>':''}
@@ -1033,23 +1057,33 @@ function openSkipDose(suppId, doseId, dateStr, btn) {
 // ─── COURSES TAB ─────────────────────────────────────────────────────────────
 function renderCourses() {
   const actives = state.supplements.filter(s=>s.active&&!s.archived);
-  const needAttention = actives.filter(s => {
+  const G = {need:[], ending:[], active:[], perm:[], rest:[], never:[]};
+  actives.forEach(s => {
     const st = getCourseStatus(s);
-    return ['nodate','need_start','rest_auto'].includes(st.phase);
+    if (s.courseType === 'permanent') G.perm.push(s);
+    else if (st.phase === 'nodate') G.never.push(s);
+    else if (['need_start','rest_auto','unknown'].includes(st.phase)) G.need.push(s);
+    else if (st.phase === 'active') ((st.dLeft != null && st.dLeft <= 14) ? G.ending : G.active).push(s);
+    else G.rest.push(s);
   });
-  const sorted = [...actives].sort((a,b) => {
-    const sa = getCourseStatus(a), sb = getCourseStatus(b);
-    const order = {need_start:0, rest_auto:1, nodate:2, active:3, permanent:4, rest:5};
-    return (order[sa.phase]||9) - (order[sb.phase]||9);
-  });
-
-  const content = document.getElementById('main-content');
-  content.innerHTML = `
+  const byLeft = (a,b) => (getCourseStatus(a).dLeft||0) - (getCourseStatus(b).dLeft||0);
+  G.ending.sort(byLeft); G.active.sort(byLeft);
+  G.rest.sort((a,b) => ((state.courseCycles[a.id]||{}).restEndDate||'').localeCompare((state.courseCycles[b.id]||{}).restEndDate||''));
+  G.need.sort((a,b)=>a.name.localeCompare(b.name,'ru')); G.perm.sort((a,b)=>a.name.localeCompare(b.name,'ru'));
+  const sec = (title, list, hint) => list.length ? `<div class="grp-title"><span>${title}</span><span>${list.length}</span></div>${hint?`<div style="font-size:12px;color:var(--text2);margin:-4px 2px 8px">${hint}</div>`:''}${list.map(s=>renderCourseCard(s)).join('')}` : '';
+  const chip = (n,l,c) => `<div class="stat-card" style="padding:8px"><div class="stat-n" style="font-size:20px;color:${c}">${n}</div><div class="stat-l">${l}</div></div>`;
+  document.getElementById('main-content').innerHTML = `
     <div class="page-header" style="padding:14px 16px 12px"><div class="page-title">Курсы</div></div>
     <div style="padding:0 12px 16px">
-      <div class="info-box">Укажите дату начала каждого курса. После завершения курса БАД автоматически переходит в режим отдыха.</div>
-      ${needAttention.length ? `<div style="font-size:14px;font-weight:600;margin-bottom:8px;color:var(--yellow)">⚠️ Требуют внимания (${needAttention.length})</div>` : ''}
-      ${sorted.map(s => renderCourseCard(s)).join('')}
+      <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);gap:6px">
+        ${chip(G.active.length+G.ending.length,'в курсе','var(--green)')}${chip(G.perm.length,'постоянно','var(--accent)')}${chip(G.rest.length,'отдых','var(--gray)')}${chip(G.need.length,'завершены','var(--yellow)')}
+      </div>
+      ${sec('⚠️ Курс завершён', G.need, 'Если продолжаете пить — нажмите «Начать новый курс».')}
+      ${sec('⏳ Скоро заканчиваются', G.ending, 'Осталось 14 дней и меньше')}
+      ${sec('✅ Принимаю сейчас', G.active)}
+      ${sec('♾ Постоянно', G.perm)}
+      ${sec('💤 На отдыхе', G.rest, 'По дате, когда можно начать снова')}
+      ${G.never.length ? `<details style="margin-top:6px"><summary class="grp-title" style="cursor:pointer;list-style:none"><span>▸ Ещё не начинали</span><span>${G.never.length}</span></summary>${G.never.sort((a,b)=>a.name.localeCompare(b.name,'ru')).map(s=>renderCourseCard(s)).join('')}</details>` : ''}
     </div>`;
 }
 
@@ -1073,7 +1107,7 @@ function renderCourseCard(supp) {
 
   return `<div class="course-card${isNeedAction?' attention':''}${st.phase==='rest'?' rest':''}">
     <div class="course-header">
-      <div class="course-name">${supp.name}</div>
+      <div class="course-name clickable-name" onclick="openSuppCard('${supp.id}')">${supp.name}</div>
       <span class="badge ${badgeClass}">${st.label}</span>
     </div>
     <div class="course-meta">
@@ -1081,6 +1115,8 @@ function renderCourseCard(supp) {
       ${c.startDate ? ` · начало: ${formatDate(c.startDate)}` : ''}
     </div>
     ${progressHtml}
+    ${(() => { if (!(st.phase==='active')) return ''; const cs = courseStats(supp); if (!cs || !cs.sched) return '';
+      return `<div style="font-size:12px;color:var(--text2);margin-top:6px">Выпито ${timesWord(cs.taken)} из ${cs.sched} по плану · <b style="color:${cs.pct>=80?'var(--green)':cs.pct>=50?'var(--yellow)':'var(--red)'}">${cs.pct}%</b>${c.endDate && supp.courseType!=='permanent' ? ' · до '+shortDate(c.endDate) : ''}</div>`; })()}
     <div class="course-actions">
       ${st.phase === 'permanent' ? '' : st.phase === 'nodate' || !c.startDate
         ? `<button class="btn btn-primary btn-sm" onclick="openSetCourseDate('${supp.id}')">Указать дату начала</button>`
@@ -1119,7 +1155,7 @@ function saveCourseStart(suppId, btn) {
   state.courseCycles[suppId] = {startDate, endDate, phase:'active', courseDays:days, restEndDate:restEnd, cycle:(state.courseCycles[suppId]?.cycle||0)};
   saveState();
   closeModal(btn.closest('.modal-overlay'));
-  renderCourses();
+  App.render(App.currentTab);
   showToast('Курс запущен');
 }
 function startNewCycle(suppId) {
@@ -1147,7 +1183,7 @@ function confirmNewCycle(suppId, btn) {
   state.courseCycles[suppId] = {startDate, endDate, phase:'active', courseDays:days, restEndDate:restEnd, cycle:(prev.cycle||0)+1};
   saveState();
   closeModal(btn.closest('.modal-overlay'));
-  renderCourses();
+  App.render(App.currentTab);
   showToast('Новый курс начат');
 }
 function finishCourseNow(suppId) {
@@ -1159,7 +1195,7 @@ function finishCourseNow(suppId) {
     c.phase = supp.restDays ? 'rest' : 'need_start';
     c.restEndDate = supp.restDays ? addDays(today(), supp.restDays) : null;
     saveState();
-    renderCourses();
+    App.render(App.currentTab);
     showToast('Курс завершён');
   });
 }
@@ -1206,7 +1242,7 @@ function saveCourseEdit(suppId, btn) {
   }
   saveState();
   closeModal(btn.closest('.modal-overlay'));
-  renderCourses();
+  App.render(App.currentTab);
   showToast('Настройки курса сохранены');
 }
 // ─── HISTORY TAB ─────────────────────────────────────────────────────────────
@@ -1331,7 +1367,7 @@ function renderStats() {
     return `<div class="card card-sm" style="margin-bottom:8px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <div style="width:8px;height:8px;border-radius:50%;background:${getCatColor(s)};flex-shrink:0"></div>
-        <div style="font-weight:500;font-size:14px;flex:1">${s.name}</div>
+        <div style="font-weight:500;font-size:14px;flex:1" class="clickable-name" onclick="openSuppCard('${s.id}')">${s.name}</div>
         <span class="badge ${adh30>=80?'badge-green':adh30>=50?'badge-yellow':'badge-red'}">${adh30}%</span>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:11px;color:var(--text2)">
@@ -1366,7 +1402,7 @@ let adminFilter = 'all';
 
 function renderAdmin() {
   const supps = state.supplements.filter(s => {
-    if (adminSearch && !s.name.toLowerCase().includes(adminSearch.toLowerCase()) && !s.brand.toLowerCase().includes(adminSearch.toLowerCase())) return false;
+    if (adminSearch && !s.name.toLowerCase().includes(adminSearch.toLowerCase()) && !(s.brand||'').toLowerCase().includes(adminSearch.toLowerCase())) return false;
     if (adminFilter === 'active') return s.active && !s.archived;
     if (adminFilter === 'disabled') return !s.active;
     if (adminFilter === 'archived') return s.archived;
@@ -1376,37 +1412,39 @@ function renderAdmin() {
   document.getElementById('main-content').innerHTML = `
     <div style="background:var(--surface);padding:14px 16px;border-bottom:1px solid var(--border)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="page-title">Админка</div>
+        <div class="page-title">Мои БАДы</div>
         <button class="btn btn-primary btn-sm" onclick="openAddSupp()">+ Добавить</button>
       </div>
-      <input type="search" class="form-input" placeholder="Поиск..." value="${adminSearch}" oninput="adminSearch=this.value;renderAdmin()" style="margin-bottom:10px">
+      <input type="search" class="form-input" placeholder="Поиск..." value="${adminSearch}" oninput="filterAdminList(this.value)" autocomplete="off" style="margin-bottom:10px">
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         ${['all','active','disabled','archived'].map(f=>`<div class="chip${adminFilter===f?' selected':''}" onclick="adminFilter='${f}';renderAdmin()">${{all:'Все',active:'Активные',disabled:'Отключённые',archived:'Архив'}[f]}</div>`).join('')}
       </div>
     </div>
     <div style="padding:12px 12px 16px">
-      ${supps.length === 0 ? '<div class="empty"><div class="empty-sub">Ничего не найдено</div></div>' : supps.map(s=>renderAdminItem(s)).join('')}
-      <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-        <div style="font-size:14px;font-weight:600;margin-bottom:10px">Данные и настройки</div>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <button class="btn btn-secondary btn-sm" onclick="syncNow()">🔄 Синхронизировать с облаком</button>
-          <button class="btn btn-secondary btn-sm" onclick="openBackfillHistory()">📅 Заполнить историю задним числом</button>
-          <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Экспорт в JSON</button>
-          <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Импорт из JSON</button>
-          <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(this)">
-          <button class="btn btn-secondary btn-sm" onclick="openNotifSettings()">🔔 Уведомления</button>
-          <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">🌓 ${state.appSettings.darkTheme?'Светлая тема':'Тёмная тема'}</button>
-          <button class="btn btn-secondary btn-sm" onclick="openDisplaySettings()">⚙ Отображение принятых</button>
-          <button class="btn btn-danger btn-sm" onclick="restoreDefault()">♻ Восстановить исходный список</button>
-        </div>
-      </div>
+      <div id="admin-list">${supps.map(s=>renderAdminItem(s)).join('')}</div>
+      <div class="empty" id="admin-empty" style="display:${supps.length?'none':'block'}"><div class="empty-sub">Ничего не найдено</div></div>
+      <button class="btn btn-secondary btn-full btn-sm" style="margin-top:12px" onclick="App.nav('settings')">⚙ Синхронизация, импорт/экспорт, тема — в «Настройках»</button>
     </div>`;
 }
 
+// Поиск без перерисовки страницы — клавиатура не закрывается
+function filterAdminList(v) {
+  adminSearch = v;
+  const q = (v || '').trim().toLowerCase();
+  let shown = 0;
+  document.querySelectorAll('#admin-list .admin-item').forEach(el => {
+    const ok = !q || (el.dataset.q || '').includes(q);
+    el.style.display = ok ? '' : 'none';
+    if (ok) shown++;
+  });
+  const empty = document.getElementById('admin-empty');
+  if (empty) empty.style.display = shown ? 'none' : 'block';
+}
+
 function renderAdminItem(s) {
-  return `<div class="admin-item${s.active?'':' disabled'}">
+  return `<div class="admin-item${s.active?'':' disabled'}" data-q="${(s.name+' '+(s.brand||'')).toLowerCase().replace(/"/g,'')}">
     <div class="admin-item-header">
-      <div class="admin-item-name">
+      <div class="admin-item-name clickable-name" onclick="openSuppCard('${s.id}')">
         <div style="width:10px;height:10px;border-radius:50%;background:${getCatColor(s)}"></div>
         ${s.name}
         ${s.brand?`<span style="font-weight:400;font-size:12px;color:var(--text2)">${s.brand}</span>`:''}
@@ -1427,7 +1465,7 @@ function toggleSuppActive(suppId) {
   if (!s) return;
   s.active = !s.active;
   saveState();
-  renderAdmin();
+  App.render(App.currentTab);
 }
 
 function duplicateSupp(suppId) {
@@ -1439,7 +1477,7 @@ function duplicateSupp(suppId) {
   newS.intakes = newS.intakes.map(i=>({...i, id:'d'+uid()}));
   state.supplements.push(newS);
   saveState();
-  renderAdmin();
+  App.render(App.currentTab);
   showToast('БАД скопирован');
 }
 
@@ -1450,14 +1488,17 @@ function deleteSupp(suppId) {
     state.supplements = state.supplements.filter(x=>x.id!==suppId);
     delete state.courseCycles[suppId];
     saveState();
-    renderAdmin();
+    App.render(App.currentTab);
     showToast('БАД удалён');
   }, 'Удалить', true);
 }
 
-function openBackfillHistory() {
-  const activeSups = state.supplements.filter(s => s.active && !s.archived);
-  const options = activeSups.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+function openBackfillHistory() { return openBackfillMulti(); }
+function openBackfillHistorySingle() {
+  const activeSups = state.supplements.filter(s => s.active && !s.archived)
+    .slice().sort((a,b) => a.name.localeCompare(b.name, 'ru'));
+  const options = `<option value="" selected disabled>— Выберите БАД —</option>` +
+    activeSups.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
   // default: 2 months ago
   const twoMonthsAgo = addCalendarMonths(today(), -2);
   const yesterday = addDays(today(), -1);
@@ -1466,7 +1507,7 @@ function openBackfillHistory() {
     <div class="info-box" style="margin-bottom:14px">Создаст отметки о приёме за указанный период. Существующие отметки не будут затронуты.</div>
     <div class="form-group">
       <label class="form-label">БАД</label>
-      <select class="form-select" id="bf-supp">${options}</select>
+      <select class="form-select" id="bf-supp" required onchange="this.style.borderColor=''">${options}</select>
     </div>
     <div class="form-row">
       <div class="form-group">
@@ -1499,7 +1540,12 @@ function runBackfill(btn) {
   const skipExisting = document.getElementById('bf-skip-existing').checked;
   const respectSched = document.getElementById('bf-respect-sched').checked;
 
-  if (!suppId || !fromDate || !toDate) { showToast('Заполните все поля'); return; }
+  if (!suppId) {
+    const sel = document.getElementById('bf-supp');
+    sel.style.borderColor = 'var(--red)'; sel.focus();
+    showToast('Выберите БАД'); return;
+  }
+  if (!fromDate || !toDate) { showToast('Заполните все поля'); return; }
   if (fromDate > toDate) { showToast('Дата начала должна быть раньше окончания'); return; }
 
   const supp = state.supplements.find(s => s.id === suppId);
@@ -1528,7 +1574,7 @@ function runBackfill(btn) {
   saveState();
   closeModal(btn.closest('.modal-overlay'));
   showToast(`Добавлено ${added} отметок, пропущено ${skipped}`);
-  renderAdmin();
+  App.render(App.currentTab);
 }
 
 function syncNow() {
@@ -1543,7 +1589,7 @@ function syncNow() {
     if (ok) {
       const t = s.savedAt ? new Date(s.savedAt).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}) : '';
       const match = Number(s.logs) === sent ? '' : ` (в облаке ${s.logs}, на телефоне ${sent})`;
-      showToast(`✅ Связь есть. В Google Sheets сохранено ${s.logs} отметок, ${s.logDays} дней${t?' · '+t:''}${match}`, 6000);
+      showToast(`✅ Связь есть. В Google Sheets сохранено ${s.logs} ${plural(Number(s.logs),'отметка','отметки','отметок')} за ${daysWord(Number(s.logDays))}${t?' · '+t:''}${match}`, 6000);
     } else {
       showToast('❌ Нет связи с облаком. Данные сохранены только на телефоне. Проверьте интернет и попробуйте ещё раз.', 7000);
     }
@@ -1572,7 +1618,7 @@ function handleImport(input) {
       confirm('Импортировать данные?', 'Текущие данные будут заменены. Перед импортом рекомендуется сделать экспорт.', () => {
         Object.assign(state, data);
         saveState();
-        renderAdmin();
+        App.render(App.currentTab);
         showToast('Данные импортированы');
       });
     } catch(err) { showToast('Ошибка импорта: '+err.message, 4000); }
@@ -1585,7 +1631,7 @@ function restoreDefault() {
   confirm('Восстановить исходный список?', 'Текущие БАДы будут заменены исходным списком из протокола. История и настройки курсов сохранятся.', () => {
     state.supplements = JSON.parse(JSON.stringify(INITIAL_SUPPLEMENTS));
     saveState();
-    renderAdmin();
+    App.render(App.currentTab);
     showToast('Исходный список восстановлен');
   }, 'Восстановить', true);
 }
@@ -1594,7 +1640,7 @@ function toggleTheme() {
   state.appSettings.darkTheme = !state.appSettings.darkTheme;
   document.documentElement.classList.toggle('dark', state.appSettings.darkTheme);
   saveState();
-  renderAdmin();
+  App.render(App.currentTab);
 }
 
 function openDisplaySettings() {
@@ -1837,8 +1883,421 @@ function saveSuppForm(suppId, btn) {
   }
   saveState();
   closeModal(btn.closest('.modal-overlay'));
-  renderAdmin();
+  App.render(App.currentTab);
   showToast(suppId?'Изменения сохранены':'БАД добавлен');
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// UX v2 (26.10.2026): карточка БАДа, автостарт курса, группы курсов,
+// задним числом для нескольких БАДов, раздел «Настройки».
+// Только добавленный код — логика хранения (state / localStorage / Sheets) не менялась.
+// ═════════════════════════════════════════════════════════════════════════════
+function suppById(id) { return state.supplements.find(s => s.id === id); }
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function isDoseTaken(d, sid, did) { const l = getLog(d, sid, did); return !!(l && l.status === 'taken'); }
+function anyTakenOn(supp, d) { return (state.intakeLogs[d] || []).some(l => l.suppId === supp.id && l.status === 'taken'); }
+function dayTakenState(supp, d) {
+  const ints = supp.intakes || [];
+  const n = ints.filter(i => isDoseTaken(d, supp.id, i.id)).length;
+  if (n === 0) return anyTakenOn(supp, d) ? 'part' : 'none';
+  return n >= ints.length ? 'full' : 'part';
+}
+function takenDatesOf(supp) { return Object.keys(state.intakeLogs).filter(k => anyTakenOn(supp, k)).sort(); }
+function shortDate(str) { if (!str) return ''; const d = parseLocalDate(str); return String(d.getDate()).padStart(2,'0') + '.' + String(d.getMonth()+1).padStart(2,'0') + '.' + d.getFullYear(); }
+function plural(n, a, b, c) { n = Math.abs(n) % 100; const n1 = n % 10; if (n > 10 && n < 20) return c; if (n1 > 1 && n1 < 5) return b; if (n1 === 1) return a; return c; }
+function daysWord(n) { return n + ' ' + plural(n, 'день', 'дня', 'дней'); }
+function timesWord(n) { return n + ' ' + plural(n, 'раз', 'раза', 'раз'); }
+
+// Начало «текущей серии» приёмов — для подсказки даты начала курса
+function guessCourseStart(supp) {
+  const dates = takenDatesOf(supp);
+  if (!dates.length) return today();
+  const last = dates[dates.length - 1];
+  const gap = supp.schedule === 'weekly' ? 8 : 4;
+  if (diffDays(last, today()) > gap) return today();
+  let start = last, d = last, miss = 0;
+  for (let i = 0; i < 400; i++) {
+    d = addDays(d, -1);
+    if (anyTakenOn(supp, d)) { start = d; miss = 0; }
+    else if (++miss > gap) break;
+  }
+  return start;
+}
+
+// Статистика текущего курса
+function courseStats(supp) {
+  const c = state.courseCycles[supp.id] || {};
+  const t = today();
+  let from, to;
+  if (supp.courseType === 'permanent') { from = takenDatesOf(supp)[0] || t; to = t; }
+  else if (c.startDate) { from = c.startDate; to = (c.endDate && c.endDate < t) ? c.endDate : t; }
+  else return null;
+  if (from > to) return { from, to, sched: 0, taken: 0, full: 0, pct: 0 };
+  let sched = 0, taken = 0, full = 0;
+  for (let d = from; d <= to; d = addDays(d, 1)) {
+    const st = dayTakenState(supp, d);
+    const isSched = isScheduledOnDate(supp, d);
+    if (isSched) sched++;
+    if (st !== 'none') taken++;
+    if (st === 'full') full++;
+  }
+  return { from, to, sched, taken, full, pct: sched ? Math.min(100, Math.round(taken / sched * 100)) : 0 };
+}
+
+function isInCourseOn(supp, dateStr) { return supp.courseType === 'permanent' || isSuppActiveToday(supp, dateStr); }
+
+// ─── П.1 АВТОСТАРТ КУРСА ─────────────────────────────────────────────────────
+function openAutoStart(suppId, dateStr, onDone) {
+  const supp = suppById(suppId); if (!supp) return;
+  const st = getCourseStatus(supp);
+  const guess = guessCourseStart(supp);
+  const startDef = guess <= dateStr ? guess : dateStr;
+  const ints = supp.intakes || [];
+  const intsHtml = ints.map(i => `<label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:6px">
+      <input type="checkbox" class="as-int" value="${i.id}" ${isDoseTaken(dateStr, suppId, i.id) ? 'checked disabled' : 'checked'}>
+      ${PERIOD_LABELS[i.period] || ''} ${i.time || ''}${isDoseTaken(dateStr, suppId, i.id) ? ' — уже отмечено' : ''}</label>`).join('');
+  openModal(`
+    <div class="modal-title">${escHtml(supp.name)}</div>
+    <div class="info-box" style="margin-bottom:14px">Сейчас: <b>${escHtml(st.label.replace(/\.$/,''))}</b>. В списке «Сегодня» этот БАД не показывается, пока не начат курс.</div>
+    <div class="form-group">
+      <label class="form-label">Отметить приём за ${shortDate(dateStr)}</label>
+      ${intsHtml}
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px">
+      <input type="checkbox" id="as-start" checked onchange="document.getElementById('as-date-wrap').style.display=this.checked?'':'none'"> Начать курс
+    </label>
+    <div class="form-group" id="as-date-wrap">
+      <label class="form-label">Дата начала курса${guess !== today() ? ' (подсказка: с первой отметки подряд)' : ''}</label>
+      <input type="date" class="form-input" id="as-date" value="${startDef}" max="${today()}">
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">Длительность: ${supp.courseDays || 90} дн.${supp.restDays ? ', затем отдых ' + supp.restDays + ' дн.' : ''}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" onclick="confirmAutoStart('${suppId}','${dateStr}',this)">Сохранить</button>
+    </div>`);
+  window._autoStartDone = onDone || null;
+}
+function confirmAutoStart(suppId, dateStr, btn) {
+  const supp = suppById(suppId); if (!supp) return;
+  const ov = btn.closest('.modal-overlay');
+  const doses = [...ov.querySelectorAll('.as-int')].filter(x => x.checked && !x.disabled).map(x => x.value);
+  const doStart = ov.querySelector('#as-start').checked;
+  if (doStart) {
+    const startDate = ov.querySelector('#as-date').value;
+    if (!startDate) { showToast('Укажите дату начала'); return; }
+    const days = supp.courseDays || 90;
+    const endDate = addDays(startDate, days - 1);
+    const prev = state.courseCycles[suppId] || {};
+    state.courseCycles[suppId] = { startDate, endDate, phase: 'active', courseDays: days,
+      restEndDate: supp.restDays ? addDays(endDate, supp.restDays) : null,
+      cycle: prev.startDate ? (prev.cycle || 0) + 1 : (prev.cycle || 0) };
+  }
+  doses.forEach(did => {
+    const intake = (supp.intakes || []).find(i => i.id === did);
+    setLog(dateStr, suppId, did, takenAtFor(dateStr, intake), 'taken');
+  });
+  saveState();
+  closeModal(ov);
+  showToast(doStart ? `Курс начат${doses.length ? ', приём отмечен' : ''}` : `Отмечено: ${doses.length}`);
+  if (window._autoStartDone) { const f = window._autoStartDone; window._autoStartDone = null; f(); }
+  else App.render(App.currentTab);
+}
+// Время отметки: сегодня — сейчас; прошлая дата — время приёма по плану
+function takenAtFor(dateStr, intake) {
+  if (dateStr === today()) return new Date().toISOString();
+  const d = parseLocalDate(dateStr);
+  const [h, m] = ((intake && intake.time) || '09:00').split(':').map(Number);
+  d.setHours(h || 9, m || 0, 0, 0);
+  return d.toISOString();
+}
+let _offCourseOpen = false;
+function renderOffCourseSection(dateStr) {
+  const list = state.supplements.filter(s => s.active && !s.archived && !isInCourseOn(s, dateStr))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  if (!list.length) return '';
+  return `<details class="card card-sm" style="margin-top:12px" ${_offCourseOpen ? 'open' : ''} ontoggle="_offCourseOpen=this.open">
+    <summary style="cursor:pointer;font-size:14px;font-weight:600">Не в курсе сейчас (${list.length}) <span style="font-weight:400;color:var(--text2);font-size:12px">— если пили, отметьте здесь</span></summary>
+    <div style="margin-top:10px">
+      ${list.map(s => {
+        const st = getCourseStatus(s);
+        const taken = anyTakenOn(s, dateStr);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border)">
+          <div style="width:8px;height:8px;border-radius:50%;background:${getCatColor(s)};flex-shrink:0"></div>
+          <div style="flex:1;min-width:0" onclick="openSuppCard('${s.id}')">
+            <div style="font-size:14px;font-weight:500">${escHtml(s.name)}</div>
+            <div style="font-size:12px;color:var(--text2)">${escHtml(st.label)}${taken ? ' · <span style="color:var(--green)">отмечено</span>' : ''}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="openAutoStart('${s.id}','${dateStr}')">${taken ? 'Ещё' : 'Выпила'}</button>
+        </div>`;
+      }).join('')}
+    </div>
+  </details>`;
+}
+
+// ─── П.2 КАРТОЧКА БАДА ───────────────────────────────────────────────────────
+function suppCardHtml(supp) {
+  const t = today();
+  const c = state.courseCycles[supp.id] || {};
+  const st = getCourseStatus(supp);
+  const cs = courseStats(supp);
+  const dates = takenDatesOf(supp);
+  const last = dates[dates.length - 1];
+  const badgeClass = {active:'badge-green',rest:'badge-gray',nodate:'badge-gray',need_start:'badge-yellow',rest_auto:'badge-yellow'}[st.phase] || 'badge-gray';
+  const perm = supp.courseType === 'permanent';
+
+  // Блок курса
+  let course = '';
+  if (perm) {
+    course = `<div class="cs-big">Постоянный приём</div>
+      ${cs && dates.length ? `<div class="cs-line">Принимаю с ${shortDate(cs.from)} · ${daysWord(diffDays(cs.from, t) + 1)}</div>` : '<div class="cs-line">Отметок пока нет</div>'}`;
+  } else if (st.phase === 'active' && c.startDate) {
+    const total = c.courseDays || supp.courseDays || 90;
+    const passed = Math.max(0, diffDays(c.startDate, t)) + 1;
+    const left = Math.max(0, diffDays(t, c.endDate));
+    const pct = Math.min(100, Math.round(passed / total * 100));
+    course = `<div style="display:flex;justify-content:space-between;align-items:baseline">
+        <div class="cs-big">День ${passed} из ${total}</div><div class="cs-big" style="color:var(--accent)">осталось ${daysWord(left)}</div></div>
+      <div class="course-bar" style="margin:8px 0"><div class="course-bar-fill" style="width:${pct}%"></div></div>
+      <div class="cs-line">${shortDate(c.startDate)} → ${shortDate(c.endDate)}${c.restEndDate ? ' · затем отдых до ' + shortDate(c.restEndDate) : ''}</div>`;
+  } else if (st.phase === 'rest') {
+    const left = Math.max(0, diffDays(t, c.restEndDate));
+    course = `<div class="cs-big">Отдых · ещё ${daysWord(left)}</div>
+      <div class="cs-line">Последний курс: ${shortDate(c.startDate)} → ${shortDate(c.endDate)}. Новый курс можно начать ${shortDate(c.restEndDate)}</div>`;
+  } else {
+    course = `<div class="cs-big">${escHtml(st.label)}</div>
+      ${c.startDate ? `<div class="cs-line">Последний курс: ${shortDate(c.startDate)} → ${shortDate(c.endDate)}</div>` : ''}`;
+  }
+
+  // Мини-статистика
+  const stat = (n, l) => `<div class="stat-card" style="padding:10px"><div class="stat-n" style="font-size:20px">${n}</div><div class="stat-l">${l}</div></div>`;
+  const statsHtml = `<div class="stat-grid" style="margin:12px 0">
+    ${cs ? stat(cs.taken, perm ? 'дней с приёмом' : 'дней с приёмом в курсе') : stat(0, 'дней в курсе')}
+    ${cs ? stat(cs.pct + '%', 'выполнение' + (cs.sched ? ` (${cs.taken}/${cs.sched})` : '')) : stat('—', 'выполнение')}
+    ${stat(getStreak(supp.id, t) || getStreak(supp.id, addDays(t, -1)), 'серия, дней')}
+    ${stat(dates.length, 'всего дней с приёмом')}
+  </div>
+  <div class="cs-line">Последний приём: ${last ? shortDate(last) + (last === t ? ' (сегодня)' : ` (${daysWord(diffDays(last, t))} назад)`) : 'нет'}</div>`;
+
+  // Мини-календарь: 5 недель, с понедельника
+  const end = t;
+  let start = addDays(end, -34);
+  const dow = (parseLocalDate(start).getDay() + 6) % 7; start = addDays(start, -dow);
+  let cells = '';
+  ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].forEach(w => cells += `<div class="mc-h">${w}</div>`);
+  for (let d = start; d <= end; d = addDays(d, 1)) {
+    const s = dayTakenState(supp, d);
+    const planned = isInCourseOn(supp, d) && isScheduledOnDate(supp, d);
+    const cls = s === 'full' ? 'mc-full' : s === 'part' ? 'mc-part' : (planned && d !== t) ? 'mc-miss' : 'mc-off';
+    cells += `<div class="mc-d ${cls}${d === t ? ' mc-today' : ''}" title="${shortDate(d)}">${parseLocalDate(d).getDate()}</div>`;
+  }
+  const cal = `<div style="font-size:13px;font-weight:600;margin:14px 0 6px">Последние 5 недель</div>
+    <div class="mini-cal">${cells}</div>
+    <div class="mc-legend"><span><i class="mc-full"></i>выпито</span><span><i class="mc-part"></i>частично</span><span><i class="mc-miss"></i>пропуск</span><span><i class="mc-off"></i>не по плану</span></div>`;
+
+  // Приёмы сегодня
+  const inToday = isInCourseOn(supp, t) && isScheduledOnDate(supp, t);
+  const intakeBtns = (supp.intakes || []).map(i => {
+    const done = isDoseTaken(t, supp.id, i.id);
+    return `<button class="btn ${done ? 'btn-secondary' : 'btn-primary'} btn-sm" ${done ? 'disabled' : ''} onclick="cardTake('${supp.id}','${i.id}',this)">${done ? '✓ ' : ''}${PERIOD_LABELS[i.period] || ''} ${i.time || ''}</button>`;
+  }).join('');
+  const todayBlock = inToday
+    ? `<div style="font-size:13px;font-weight:600;margin:14px 0 6px">Отметить сегодня</div><div style="display:flex;gap:6px;flex-wrap:wrap">${intakeBtns}</div>`
+    : `<button class="btn btn-primary btn-full" style="margin-top:14px" onclick="cardAutoStart('${supp.id}',this)">Выпила сегодня${perm ? '' : ' / начать курс'}</button>`;
+
+  const courseBtns = perm ? '' : (st.phase === 'active'
+    ? `<button class="btn btn-secondary btn-sm" onclick="cardAction('${supp.id}','date',this)">Изменить дату</button><button class="btn btn-secondary btn-sm" onclick="cardAction('${supp.id}','finish',this)">Завершить курс</button>`
+    : `<button class="btn btn-secondary btn-sm" onclick="cardAction('${supp.id}','new',this)">Начать курс</button>`);
+
+  return `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+      <div style="width:12px;height:12px;border-radius:50%;background:${getCatColor(supp)}"></div>
+      <div class="modal-title" style="margin:0;flex:1">${escHtml(supp.name)}</div>
+      <span class="badge ${badgeClass}">${perm ? 'Постоянно' : escHtml(st.label.split(' · ')[0])}</span>
+    </div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${escHtml(supp.brand || '')}${supp.brand ? ' · ' : ''}${escHtml(supp.doseText || '')} · ${(supp.intakes || []).map(i => i.time).join(', ')}</div>
+    <div class="card card-sm" style="margin-bottom:0">${course}</div>
+    ${statsHtml}
+    ${todayBlock}
+    ${cal}
+    ${supp.note ? `<div class="info-box" style="margin-top:12px">${escHtml(supp.note)}</div>` : ''}
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:14px">
+      ${courseBtns}
+      <button class="btn btn-secondary btn-sm" onclick="cardAction('${supp.id}','edit',this)">✏ Редактировать</button>
+    </div>
+    <div class="modal-actions"><button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Закрыть</button></div>`;
+}
+function openSuppCard(suppId) {
+  const supp = suppById(suppId); if (!supp) return;
+  const ov = openModal(`<div id="supp-card">${suppCardHtml(supp)}</div>`);
+  ov.dataset.suppCard = suppId;
+}
+function refreshSuppCard(suppId) {
+  const el = document.getElementById('supp-card');
+  const supp = suppById(suppId);
+  if (el && supp) el.innerHTML = suppCardHtml(supp);
+}
+function cardTake(suppId, doseId, btn) {
+  setLog(today(), suppId, doseId, new Date().toISOString(), 'taken');
+  refreshSuppCard(suppId);
+  App.render(App.currentTab);
+  showToast('Приём отмечен');
+}
+function cardAutoStart(suppId, btn) {
+  closeModal(btn.closest('.modal-overlay'));
+  openAutoStart(suppId, today(), () => { App.render(App.currentTab); openSuppCard(suppId); });
+}
+function cardAction(suppId, act, btn) {
+  closeModal(btn.closest('.modal-overlay'));
+  if (act === 'date') openSetCourseDate(suppId);
+  else if (act === 'finish') finishCourseNow(suppId);
+  else if (act === 'new') startNewCycle(suppId);
+  else if (act === 'edit') openEditSupp(suppId);
+}
+
+// ─── П.3 ОТМЕТИТЬ ВЕСЬ ПЕРИОД ────────────────────────────────────────────────
+function markPeriod(period) {
+  const dateStr = viewDate;
+  const doses = getDosesForDate(dateStr).filter(d => (d.intake.period || 'any') === period && !d.paused && !getLog(dateStr, d.suppId, d.doseId));
+  if (!doses.length) { showToast('Всё уже отмечено'); return; }
+  doses.forEach(d => setLog(dateStr, d.suppId, d.doseId, takenAtFor(dateStr, d.intake), 'taken'));
+  renderToday();
+  showToast(`Отмечено: ${doses.length} — ${(PERIOD_LABELS[period] || '').toLowerCase()}`);
+}
+
+// ─── П.5 ЗАДНИМ ЧИСЛОМ: НЕСКОЛЬКО БАДОВ ─────────────────────────────────────
+function openBackfillMulti() {
+  const sups = state.supplements.filter(s => s.active && !s.archived).slice().sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  const twoWeeksAgo = addDays(today(), -14);
+  const yesterday = addDays(today(), -1);
+  openModal(`
+    <div class="modal-title">📅 Заполнить задним числом</div>
+    <div class="info-box" style="margin-bottom:12px">Отметит выбранные БАДы за период. Уже существующие отметки не меняются.</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">С</label><input type="date" class="form-input" id="bf-from" value="${twoWeeksAgo}" max="${today()}" onchange="updateBackfillPreview()"></div>
+      <div class="form-group"><label class="form-label">По</label><input type="date" class="form-input" id="bf-to" value="${yesterday}" max="${today()}" onchange="updateBackfillPreview()"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">БАДы <span id="bf-count" style="color:var(--text2)">(не выбрано)</span></label>
+      <input type="search" class="form-input" placeholder="Поиск…" autocomplete="off" oninput="filterBackfillList(this.value)" style="margin-bottom:6px">
+      <div id="bf-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;padding:4px 10px">
+        ${sups.map(s => `<label class="bf-row" data-q="${escHtml(s.name.toLowerCase())}" style="display:flex;align-items:center;gap:8px;padding:7px 0;font-size:14px;border-bottom:1px solid var(--border)">
+          <input type="checkbox" class="bf-chk" value="${s.id}" onchange="updateBackfillPreview()">
+          <span style="flex:1">${escHtml(s.name)}</span>
+          <span style="font-size:11px;color:var(--text3)">${(s.intakes || []).length > 1 ? (s.intakes.length + ' приёма') : ''}</span>
+        </label>`).join('')}
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:8px">
+      <input type="checkbox" id="bf-respect-sched" checked onchange="updateBackfillPreview()"> Учитывать график (через день, дни недели)
+    </label>
+    <div id="bf-preview" class="info-box" style="margin:8px 0 0">Выберите БАДы</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal(this.closest('.modal-overlay'))">Отмена</button>
+      <button class="btn btn-primary" id="bf-go" onclick="runBackfillMulti(this)">Заполнить</button>
+    </div>`);
+}
+function filterBackfillList(v) {
+  const q = (v || '').trim().toLowerCase();
+  document.querySelectorAll('#bf-list .bf-row').forEach(el => el.style.display = !q || el.dataset.q.includes(q) ? 'flex' : 'none');
+}
+function planBackfill() {
+  const from = document.getElementById('bf-from').value, to = document.getElementById('bf-to').value;
+  const ids = [...document.querySelectorAll('.bf-chk:checked')].map(x => x.value);
+  const respect = document.getElementById('bf-respect-sched').checked;
+  const plan = []; let skipped = 0;
+  if (!from || !to || from > to) return { err: 'Проверьте даты', ids, plan, skipped };
+  for (const id of ids) {
+    const supp = suppById(id); if (!supp) continue;
+    for (let d = from; d <= to; d = addDays(d, 1)) {
+      if (respect && !isScheduledOnDate(supp, d)) continue;
+      for (const intake of (supp.intakes || [])) {
+        if (getLog(d, id, intake.id)) { skipped++; continue; }
+        plan.push({ d, id, intake });
+      }
+    }
+  }
+  return { ids, plan, skipped, from, to };
+}
+function updateBackfillPreview() {
+  const p = planBackfill();
+  const cnt = document.getElementById('bf-count');
+  if (cnt) cnt.textContent = p.ids.length ? `(выбрано ${p.ids.length})` : '(не выбрано)';
+  const el = document.getElementById('bf-preview'); if (!el) return;
+  if (p.err) { el.textContent = p.err; return; }
+  if (!p.ids.length) { el.textContent = 'Выберите БАДы'; return; }
+  el.innerHTML = `Будет добавлено <b>${p.plan.length}</b> ${plural(p.plan.length, 'отметка', 'отметки', 'отметок')} за ${shortDate(p.from)}–${shortDate(p.to)}` +
+    (p.skipped ? `, уже есть и не изменятся: ${p.skipped}` : '');
+}
+function runBackfillMulti(btn) {
+  const p = planBackfill();
+  if (!p.ids.length) { showToast('Выберите хотя бы один БАД'); document.getElementById('bf-list').style.borderColor = 'var(--red)'; return; }
+  if (p.err) { showToast(p.err); return; }
+  if (!p.plan.length) { showToast('Нечего добавлять — все отметки уже есть'); return; }
+  p.plan.forEach(x => setLog(x.d, x.id, x.intake.id, takenAtFor(x.d, x.intake), 'taken'));
+  saveState();
+  closeModal(btn.closest('.modal-overlay'));
+  showToast(`Добавлено ${p.plan.length} ${plural(p.plan.length, 'отметка', 'отметки', 'отметок')}`);
+  App.render(App.currentTab);
+}
+
+// ─── П.6 НАСТРОЙКИ ───────────────────────────────────────────────────────────
+function renderSettings() {
+  const total = countIntakeLogs();
+  const days = Object.keys(state.intakeLogs || {}).length;
+  document.getElementById('main-content').innerHTML = `
+    <div class="page-header" style="padding:14px 16px 12px"><div class="page-title">Настройки</div></div>
+    <div style="padding:0 12px 16px">
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">☁ Облако (Google Sheets)</div>
+        <div id="cloud-status" style="font-size:13px;color:var(--text2);margin-bottom:10px">Проверяю связь…</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="syncNow();setTimeout(refreshCloudStatus,9000)">🔄 Синхронизировать</button>
+          <button class="btn btn-secondary btn-sm" onclick="refreshCloudStatus()">Проверить связь</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:6px">📋 Данные</div>
+        <div style="font-size:13px;color:var(--text2);margin-bottom:10px">На устройстве: ${total} ${plural(total,'отметка','отметки','отметок')} за ${daysWord(days)}</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="openBackfillMulti()">📅 Заполнить задним числом</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportData()">📤 Экспорт в JSON (резервная копия)</button>
+          <button class="btn btn-secondary btn-sm" onclick="importData()">📥 Импорт из JSON</button>
+          <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(this)">
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px">🎨 Внешний вид и уведомления</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button class="btn btn-secondary btn-sm" onclick="openNotifSettings()">🔔 Уведомления</button>
+          <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">🌓 ${state.appSettings.darkTheme ? 'Светлая тема' : 'Тёмная тема'}</button>
+          <button class="btn btn-secondary btn-sm" onclick="openDisplaySettings()">⚙ Отображение принятых</button>
+        </div>
+      </div>
+      <div class="card">
+        <div style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--red)">Осторожно</div>
+        <button class="btn btn-danger btn-sm btn-full" onclick="restoreDefault()">♻ Восстановить исходный список БАДов</button>
+      </div>
+    </div>`;
+  refreshCloudStatus();
+}
+function refreshCloudStatus() {
+  const el = document.getElementById('cloud-status'); if (!el) return;
+  el.style.color = 'var(--text2)'; el.textContent = 'Проверяю связь…';
+  checkCloudStatus().then(s => {
+    const el2 = document.getElementById('cloud-status'); if (!el2) return;
+    if (s && s.status === 'ok') {
+      const local = countIntakeLogs();
+      const tm = s.savedAt ? new Date(s.savedAt).toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+      const same = Number(s.logs) === local;
+      el2.style.color = same ? 'var(--green)' : 'var(--yellow)';
+      el2.innerHTML = `✅ Связь есть. Последнее сохранение: ${tm}<br>В облаке ${s.logs} ${plural(Number(s.logs),'отметка','отметки','отметок')}, на устройстве ${local}${same ? ' — совпадает' : ' — нажмите «Синхронизировать»'}`;
+    } else if (s && s.status === 'empty') {
+      el2.style.color = 'var(--yellow)'; el2.textContent = '⚠ Связь есть, но в облаке пока пусто — нажмите «Синхронизировать».';
+    } else { el2.style.color = 'var(--red)'; el2.textContent = '❌ Облако ответило с ошибкой.'; }
+  }).catch(() => {
+    const el2 = document.getElementById('cloud-status'); if (!el2) return;
+    el2.style.color = 'var(--red)'; el2.textContent = '❌ Нет связи с облаком. Данные сохраняются на устройстве.';
+  });
 }
 
 // ─── APP CONTROLLER ──────────────────────────────────────────────────────────
@@ -1858,6 +2317,7 @@ const App = {
       case 'history': renderHistory(); break;
       case 'stats': renderStats(); break;
       case 'admin': renderAdmin(); break;
+      case 'settings': renderSettings(); break;
     }
   }
 };
